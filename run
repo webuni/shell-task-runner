@@ -1,0 +1,58 @@
+#!/bin/sh
+set -e
+
+# User defined commands
+# =====================
+
+cmd_config() { ## Config environment variables (.env file)
+    _config "$@"
+}
+
+#-----------------------------------------------------------------------------------------------------------------------
+
+# Shell Task Runner
+# =================
+
+SCRIPT=$(readlink -f "$0")
+SCRIPTPATH=$(dirname "$SCRIPT")
+BASENAME=$(basename "$SCRIPTPATH")
+
+_header(){
+    printf "Application \033[1;33m%s\033[0m: usage %s [command]\n\n" "$BASENAME" "$0"
+}
+
+_commands(){
+    printf "\033[33mCommands:\033[0m\n"
+    PATTERN="^\s*cmd_([a-zA-Z_-]+)\s*\(\s*\)[ \{]*"
+    grep -E "$PATTERN" < "$0" | sort | sed -r -e "s/$PATTERN/\1/" | awk 'BEGIN {FS = "##[ \t]*"}; {printf "  \033[36m%-15s\033[0m %s\n", $1, $2}'
+}
+
+_config(){
+    touch .env.dist .env && CONFIG=""
+    while read -r LINE; do
+        if [ "${LINE:0:1}" = '#' ]; then HELP=$(echo "${LINE:1}" | xargs); continue; fi
+        if test "${LINE#*=}" = "$LINE"; then continue; fi
+
+        KEY="$(echo "$LINE" | cut -d= -f1)" && DEFAULT="$(echo "$LINE" | cut -d= -f2)" && DEFAULT="$(eval echo "$DEFAULT")"
+        if [ "$1" = '-f' ] || [ "$1" = '--force' ] || ! grep "${KEY}=" .env > /dev/null; then
+            if [ "${HELP}" != "" ]; then  printf "  \033[37m%s\033[0m\n" "$HELP"; fi
+            printf "  \033[36m%s\033[0m (\033[33m%s\033[0m): " "$KEY" "$DEFAULT"
+            read -r VALUE </dev/tty && if [ "$VALUE" = '' ]; then VALUE=${DEFAULT}; fi
+        else
+            VALUE=$(awk -F= "/$KEY=/{print \$2}" .env)
+        fi
+        CONFIG="$CONFIG$KEY=$VALUE"$'\n'
+        HELP=""
+    done < .env.dist
+    echo "${CONFIG}" > .env
+}
+
+if [ "$1" = '' ] || [ "$1" = '-h' ] || [ "$1" = '--help' ]; then
+    _header
+    _commands
+elif type "cmd_${1}" &> /dev/null; then
+    command=$1 && shift && cmd_"${command}" "$@"
+else
+    _header
+    printf "\033[30;41mCommand \"%s\" doesn't exist.\033[0m\n\n" "$1" >&2 && _commands >&1 && exit 1
+fi
