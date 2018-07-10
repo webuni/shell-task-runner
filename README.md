@@ -14,8 +14,8 @@ task_hello() { ## Print Hello World box
     _box --p=1 --bg-green --bold --white "Hello World! $(_ansi --blue "🌍")"
 }
 
-url="https://raw.githubusercontent.com/webuni/shell-task-runner/master/runner"
-[ command -v "wget" > /dev/null ] && eval "$(wget -qO- "$url")" || eval "$(curl "$url")"
+url="https://raw.githubusercontent.com/webuni/shell-task-runner/master/run"
+command -v 'wget'>/dev/null && eval "$(wget -qO- "$url")" || eval "$(curl -s "$url")"
 ```
 
 And then you just have to run this file `sh ./run`.
