@@ -1,58 +1,209 @@
 #!/bin/sh
-set -e
-
-# User defined commands
-# =====================
-
-cmd_config() { ## Config environment variables (.env file)
-    _config "$@"
-}
-
-#-----------------------------------------------------------------------------------------------------------------------
 
 # Shell Task Runner
 # =================
+
+set -e
 
 SCRIPT=$(readlink -f "$0")
 SCRIPTPATH=$(dirname "$SCRIPT")
 BASENAME=$(basename "$SCRIPTPATH")
 
-_header(){
-    printf "Application \033[1;33m%s\033[0m: usage %s [command]\n\n" "$BASENAME" "$0"
+_header()(
+    printf "%s\\nUsage %s [task] [task_options]\\n\\n" "$(_ansi --underline "Application $(_ansi --bold --yellow "$BASENAME")")" "$0"
+)
+
+_tasks()(
+    _ansi --bold --yellow --nl "Tasks:"
+    pattern="^\\s*task_([a-zA-Z_-]+)\\s*\\(\\s*\\)[ \\{]*"
+    grep -E "$pattern" < "$0" | sort | sed -r "s/$pattern/\\1/" | awk 'BEGIN {FS = "##[ \t]*"}; {printf "  \033[36m%-15s\033[0m %s\n", $1, $2}'
+)
+
+_shell_escape()(
+    echo "$1" | sed -e 's/\(["\& '"'"']\)/\\\1/g'
+)
+
+_printf_escape()(
+    echo "$1" | sed "s/%/%%/g"
+)
+
+_ansifilter()(
+    echo "$1" | sed -r 's/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]//g'
+)
+
+_stty()(
+    sleep 0.1 # Fix tty delay for docker run -t ...
+    stty "$@" 2>/dev/null
+)
+
+_color()(
+    case "$1" in
+        black) echo 0;;
+        red) echo 1;;
+        green) echo 2;;
+        yellow) echo 3;;
+        blue) echo 4;;
+        magenta|purple) echo 5;;
+        cyan) echo 6;;
+        white) echo 7;;
+    esac
+)
+
+_ansi()(
+    text=''; start=''; stop=""; newline=''; format='%s'
+    while [ -n "$1" ]; do
+        case "$1" in
+            --nl|--new-line) newline="\\n";;
+            --bold) start="$start\\033[1m"; stop="\\033[22m$stop";;
+            --italic) start="$start\\033[3m"; stop="\\033[23m$stop";;
+            --format=*) format="${1#--format=}";;
+            --underline) start="$start\\033[4m"; stop="\\033[24m$stop";;
+            --inverse) start="$start\\033[7m";;
+            --reset) start="$start\\033[0m";;
+            --bg-bright-*) start="$start\\033[10$(_color "${1#--bg-bright-}")m"; stop="\\033[49m$stop";;
+            --bg-*-intense) start="$start\\033[10$(_color "${1#--bg-}")m"; stop="\\033[49m$stop";;
+            --bg-*) start="$start\\033[4$(_color "${1#--bg-}")m"; stop="\\033[49m$stop";;
+            --bright-gray) start="$start\\033[37m"; stop="\\033[39m$stop";;
+            --bright-*) start="$start\\033[9$(_color "${1#--bright-}")m"; stop="\\033[22m$stop";;
+            --gray) start="$start\\033[90m"; stop="\\033[39m$stop";;
+            --*-intense) start="$start\\093[3$(_color "${1#--}")m"; stop="\\033[22m$stop";;
+            --*) start="$start\\033[3$(_color "${1#--}")m"; stop="\\033[39m$stop";;
+            *) text="$1";;
+        esac
+        shift
+    done
+
+    printf "${start}${format}${stop}${newline}" "$text"
+)
+
+_align()(
+    for text in "$@"; do true; done
+    rawtext="$(_ansifilter "$text")"
+    width=$(( $(_stty size | cut -d' ' -f2) + ${#text} - ${#rawtext} ))
+    left_span=$(( (width + ${#text}) / 2 ))
+    right_span=$(( width - left_span ))
+    case "$1" in
+        --right) printf "%${width}s\\n" "$text";;
+        --center) printf "%${left_span}s%${right_span}s\\n" "$text";;
+        *) printf "%s" "$text";;
+    esac
+)
+
+_box()(
+    text=""; options=""; newline=""; padding=1; margin=0
+    while [ -n "$1" ]; do
+        case "$1" in
+            --p=*) padding="${1#--p=}";;
+            --padding=*) padding="${1#--padding=}";;
+            --m=*) margin="${1#--m=}";;
+            --margin=*) margin="${1#--margin=}";;
+            --nl|--new-line) newline=1;;
+            --*) options="$options $1";;
+            *) text="$text$1";;
+        esac
+        shift
+    done
+
+    mspace=$([ "$margin" -gt 0 ] && printf "   %.0s" $(seq 1 "$margin") || echo "")
+    pspace=$([ "$padding" -gt 0 ] && printf "   %.0s" $(seq 1 "$padding") || echo "")
+    width=$(( $(_stty size | cut -d' ' -f2) - 2 * ${#mspace} ))
+    textwidth=$(( width - 2 * ${#pspace} ))
+
+    for _ in $(seq 1 "$margin"); do echo ""; done
+    for _ in $(seq 1 "$padding"); do echo "$mspace$(_ansi $options --nl --format="%${width}s")"; done
+
+    esc="$(printf "\\033")"
+    printf "$(_printf_escape "$text\\n ")" | while IFS= read -r part; do
+        length=0; line=''; state=0
+        echo "$part" | sed 's/\(.\)/\1\n/g' | {
+            LANG=C; LC_ALL=C
+            while IFS= read -r char; do
+                line="$line$char"
+                if [ "$esc" = "$char" ]; then state=1; fi
+                if [ "$state" -eq 0 ]; then
+                    if [ "${#char}" -ge 4 ]; then step=2; else step=1; fi
+                    length=$(( length + step ));
+                fi
+                if [ "$state" -eq 1 ] && [ "m" = "$char" ]; then state=0; fi
+                if [ "$length" -eq "$textwidth" ]; then
+                    echo "$mspace$(_ansi $options --format="$pspace%s%$(( textwidth - length ))s$pspace" "$line")"
+                    length=0; line='';
+                fi
+            done
+            if [ "$length" -gt 0 ]; then
+                echo "$mspace$(_ansi $options --format="$pspace%s%$(( textwidth - length + 1 ))s$pspace" "$line")"
+            fi
+            length=0; line=''
+        }
+    done
+
+    for _ in $(seq 1 "$padding"); do echo "$mspace$(_ansi $options --nl --format="%${width}s")"; done
+    for _ in $(seq 1 "$margin"); do echo ""; done
+    [ -n "$newline" ] && echo ""
+)
+
+_log(){
+    color="gray"
+    case $1 in
+        --error) color="red"; shift;;
+        --warning) color="yellow"; shift;;
+        --success) color="green"; shift;;
+        --info) color="cyan"; shift;;
+        --*) shift;;
+    esac
+
+    printf "[%s] %s\\n" "$(_ansi "--${color}" "$(date -Iseconds)")" "$@"
 }
 
-_commands(){
-    printf "\033[33mCommands:\033[0m\n"
-    PATTERN="^\s*cmd_([a-zA-Z_-]+)\s*\(\s*\)[ \{]*"
-    grep -E "$PATTERN" < "$0" | sort | sed -r -e "s/$PATTERN/\1/" | awk 'BEGIN {FS = "##[ \t]*"}; {printf "  \033[36m%-15s\033[0m %s\n", $1, $2}'
+_docker_run(){
+    docker run --rm -i"$(test -t 1 && echo "t")" -v "$(pwd)":"$(pwd)" -w "$(pwd)" -e USER_ID="$(id -u)" -e GROUP_ID="$(id -g)" "$@"
 }
 
-_config(){
-    touch .env.dist .env && CONFIG=""
-    while read -r LINE; do
-        if [ "${LINE:0:1}" = '#' ]; then HELP=$(echo "${LINE:1}" | xargs); continue; fi
-        if test "${LINE#*=}" = "$LINE"; then continue; fi
+_dotenv()(
+    config=""
 
-        KEY="$(echo "$LINE" | cut -d= -f1)" && DEFAULT="$(echo "$LINE" | cut -d= -f2)" && DEFAULT="$(eval echo "$DEFAULT")"
-        if [ "$1" = '-f' ] || [ "$1" = '--force' ] || ! grep "${KEY}=" .env > /dev/null; then
-            if [ "${HELP}" != "" ]; then  printf "  \033[37m%s\033[0m\n" "$HELP"; fi
-            printf "  \033[36m%s\033[0m (\033[33m%s\033[0m): " "$KEY" "$DEFAULT"
-            read -r VALUE </dev/tty && if [ "$VALUE" = '' ]; then VALUE=${DEFAULT}; fi
-        else
-            VALUE=$(awk -F= "/$KEY=/{print \$2}" .env)
+    touch .env.dist .env
+    while read -r line; do
+        if [ "$(echo "$line" | head -c1)" = '#' ]; then
+            help=$(echo "$line" | cut -c2- | xargs)
+            config="$config$line\\n"
+            continue
         fi
-        CONFIG="$CONFIG$KEY=$VALUE"$'\n'
-        HELP=""
+
+        if test "${line#*=}" = "$line"; then
+            config="$config$line\\n"
+            continue
+        fi
+
+        key="$(echo "$line" | cut -d= -f1)"
+        value="$(echo "$line" | cut -d= -f2-)"
+        default="$(eval echo "$value")"
+        value="$default"
+        if [ "$1" = '-f' ] || [ "$1" = '--force' ] || ! grep "^${key}=" .env > /dev/null; then
+            [ -n "$help" ] && _ansi --white --nl "  $help"
+            printf "%s (%s): $(test -t 1 && printf "\\n")" "$(_ansi --cyan "  $key")" "$(_ansi --yellow "$default")"
+            if [ -t 1 ] && read -r value </dev/tty && [ "$value" = "" ]; then
+                value="$default"
+            fi
+            value="$(_shell_escape "$value")"
+        else
+            value="$(grep "^${key}=" .env | cut -d= -f2-)"
+        fi
+        config="$config$key=$value\\n"
+        help=""
     done < .env.dist
-    echo "${CONFIG}" > .env
-}
+    printf "$(_printf_escape "$config")" > .env
+)
 
 if [ "$1" = '' ] || [ "$1" = '-h' ] || [ "$1" = '--help' ]; then
     _header
-    _commands
-elif type "cmd_${1}" &> /dev/null; then
-    command=$1 && shift && cmd_"${command}" "$@"
+    printf "%s\\n  %-25s%s\\n\\n" "$(_ansi --cyan "Options:")" "$(_ansi --green "-h, --help")" "Print this message and exit"
+    _tasks
+elif command -v "task_$1" > /dev/null; then
+    task=$1 && shift
+#    [ "config" != "$command" ] && _dotenv ""
+    task_"$task" "$@";
 else
     _header
-    printf "\033[30;41mCommand \"%s\" doesn't exist.\033[0m\n\n" "$1" >&2 && _commands >&1 && exit 1
+    _box --bg-red --white --nl "Task $(_ansi --bold "$1") doesn't exist." >&2 && _tasks >&1 && exit 1
 fi
