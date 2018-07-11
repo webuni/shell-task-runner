@@ -5,12 +5,9 @@
 
 set -e
 
-SCRIPT=$(readlink -f "$0")
-SCRIPTPATH=$(dirname "$SCRIPT")
-BASENAME=$(basename "$SCRIPTPATH")
-
 _header()(
-    printf "%s\\nUsage %s [task] [task_options]\\n\\n" "$(_ansi --underline "Application $(_ansi --bold --yellow "$BASENAME")")" "$0"
+    name="$(basename "$(cd "$(dirname "$0")"; pwd -P)")"
+    printf "%s\\nUsage %s [task] [task_options]\\n\\n" "$(_ansi --underline "Application $(_ansi --bold --yellow "$name")")" "$0"
 )
 
 _tasks()(
