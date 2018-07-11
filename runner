@@ -196,10 +196,8 @@ if [ "$1" = '' ] || [ "$1" = '-h' ] || [ "$1" = '--help' ]; then
     _header
     printf "%s\\n  %-25s%s\\n\\n" "$(_ansi --cyan "Options:")" "$(_ansi --green "-h, --help")" "Print this message and exit"
     _tasks
-elif command -v "task_$1" > /dev/null; then
-    task=$1 && shift
-#    [ "config" != "$command" ] && _dotenv ""
-    task_"$task" "$@";
+elif [ -n "$(command -v "task_$1")" ]; then
+    task=$1 && shift && task_"$task" "$@";
 else
     _header
     _box --bg-red --white --nl "Task $(_ansi --bold "$1") doesn't exist." >&2 && _tasks >&1 && exit 1
