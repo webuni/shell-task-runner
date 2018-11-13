@@ -139,7 +139,7 @@ _box()(
     [ -n "$newline" ] && echo ""
 )
 
-_log(){
+_log()(
     color="gray"
     case $1 in
         --error) color="red"; shift;;
@@ -150,7 +150,7 @@ _log(){
     esac
 
     printf "[%s] %s\\n" "$(_ansi "--${color}" "$(date -Iseconds)")" "$@"
-}
+)
 
 _docker_run(){
     docker run --rm -i"$(test -t 1 && echo "t")" -v "$(pwd)":"$(pwd)" -w "$(pwd)" -e USER_ID="$(id -u)" -e GROUP_ID="$(id -g)" "$@"
