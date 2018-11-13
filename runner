@@ -47,30 +47,32 @@ _color()(
 )
 
 _ansi()(
-    text=''; start=''; stop=""; newline=''; format='%s'
+    text='' start='' stop="" newline='' format="%s"
     while [ -n "$1" ]; do
         case "$1" in
             --nl|--new-line) newline="\\n";;
-            --bold) start="$start\\033[1m"; stop="\\033[22m$stop";;
-            --italic) start="$start\\033[3m"; stop="\\033[23m$stop";;
-            --format=*) format="${1#--format=}";;
-            --underline) start="$start\\033[4m"; stop="\\033[24m$stop";;
+            --bold) start="$start\\033[1m" stop="\\033[22m$stop";;
+            --italic) start="$start\\033[3m" stop="\\033[23m$stop";;
+            --format=*) format="${1#*=}";;
+            -f|--format) shift; format="$1";;
+            --underline) start="$start\\033[4m" stop="\\033[24m$stop";;
             --inverse) start="$start\\033[7m";;
             --reset) start="$start\\033[0m";;
-            --bg-bright-*) start="$start\\033[10$(_color "${1#--bg-bright-}")m"; stop="\\033[49m$stop";;
-            --bg-*-intense) start="$start\\033[10$(_color "$(echo "$1" | cut -d- -f4)")m"; stop="\\033[49m$stop";;
-            --bg-*) start="$start\\033[4$(_color "${1#--bg-}")m"; stop="\\033[49m$stop";;
-            --bright-gray) start="$start\\033[37m"; stop="\\033[39m$stop";;
-            --bright-*) start="$start\\033[9$(_color "${1#--bright-}")m"; stop="\\033[39m$stop";;
-            --gray) start="$start\\033[90m"; stop="\\033[39m$stop";;
-            --*-intense) start="$start\\033[9$(_color "$(echo "$1" | cut -d- -f3)")m"; stop="\\033[39m$stop";;
-            --*) start="$start\\033[3$(_color "${1#--}")m"; stop="\\033[39m$stop";;
-            *) text="$1";;
+            --bg-bright-*) start="$start\\033[10$(_color "${1##*-}")m" stop="\\033[49m$stop";;
+            --bg-*-intense) start="$start\\033[10$(_color "$(echo "$1" | cut -d- -f4)")m" stop="\\033[49m$stop";;
+            --bg-*) start="$start\\033[4$(_color "${1##*-}")m" stop="\\033[49m$stop";;
+            --bright-gray) start="$start\\033[37m" stop="\\033[39m$stop";;
+            --bright-*) start="$start\\033[9$(_color "${1##*-}")m" stop="\\033[39m$stop";;
+            --gray) start="$start\\033[90m" stop="\\033[39m$stop";;
+            --*-intense) start="$start\\033[9$(_color "$(echo "$1" | cut -d- -f3)")m" stop="\\033[39m$stop";;
+            --*) start="$start\\033[3$(_color "${1##*-}")m" stop="\\033[39m$stop";;
+            *) text="$text $(_shell_escape "$1")";;
         esac
         shift
     done
 
-    printf "${start}${format}${stop}${newline}" "$text"
+    eval set -- "$text"
+    printf "${start}${format}${stop}${newline}" "$@"
 )
 
 _align()(
