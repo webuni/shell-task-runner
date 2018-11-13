@@ -152,9 +152,10 @@ _log()(
     printf "[%s] %s\\n" "$(_ansi "--${color}" "$(date -Iseconds)")" "$@"
 )
 
-_docker_run(){
-    docker run --rm -i"$(test -t 1 && echo "t")" -v "$(pwd)":"$(pwd)" -w "$(pwd)" -e USER_ID="$(id -u)" -e GROUP_ID="$(id -g)" "$@"
-}
+_docker_run()(
+    if [ -t 1 ]; then tty="-t"; fi
+    docker run --rm -i $tty -v "$(pwd)":"$(pwd)" -w "$(pwd)" -e USER_ID="$(id -u)" -e GROUP_ID="$(id -g)" "$@"
+)
 
 _dotenv()(
     config=""
