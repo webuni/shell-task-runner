@@ -63,7 +63,7 @@ _ansi()(
             --bright-gray) start="$start\\033[37m"; stop="\\033[39m$stop";;
             --bright-*) start="$start\\033[9$(_color "${1#--bright-}")m"; stop="\\033[22m$stop";;
             --gray) start="$start\\033[90m"; stop="\\033[39m$stop";;
-            --*-intense) start="$start\\093[3$(_color "${1#--}")m"; stop="\\033[22m$stop";;
+            --*-intense) start="$start\\033[3$(_color "${1#--}")m"; stop="\\033[22m$stop";;
             --*) start="$start\\033[3$(_color "${1#--}")m"; stop="\\033[39m$stop";;
             *) text="$1";;
         esac
