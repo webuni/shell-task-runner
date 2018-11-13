@@ -17,15 +17,15 @@ _tasks()(
 )
 
 _shell_escape()(
-    echo "$1" | sed -e 's/\(["\& '"'"']\)/\\\1/g'
+    printf "%s" "$1" | sed -e 's/\(["\& '"'"']\)/\\\1/g'
 )
 
 _printf_escape()(
-    echo "$1" | sed "s/%/%%/g"
+    printf "%s" "$1" | sed "s/%/%%/g"
 )
 
 _ansifilter()(
-    echo "$1" | sed -r 's/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]//g'
+    printf "%s" "$1" | sed -r 's/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]//g'
 )
 
 _stty()(
@@ -112,7 +112,7 @@ _box()(
     esc="$(printf "\\033")"
     printf "$(_printf_escape "$text\\n ")" | while IFS= read -r part; do
         length=0; line=''; state=0
-        echo "$part" | sed 's/\(.\)/\1\n/g' | {
+        printf "%s\\n" "$part" | sed 's/\(.\)/\1\n/g' | {
             LANG=C; LC_ALL=C
             while IFS= read -r char; do
                 line="$line$char"
@@ -123,18 +123,18 @@ _box()(
                 fi
                 if [ "$state" -eq 1 ] && [ "m" = "$char" ]; then state=0; fi
                 if [ "$length" -eq "$textwidth" ]; then
-                    echo "$mspace$(_ansi $options --format="$pspace%s%$(( textwidth - length ))s$pspace" "$line")"
+                    printf "%s" "$mspace$(_ansi $options --format="$pspace%s%$(( textwidth - length ))s$pspace" "$line")"
                     length=0; line='';
                 fi
             done
             if [ "$length" -gt 0 ]; then
-                echo "$mspace$(_ansi $options --format="$pspace%s%$(( textwidth - length + 1 ))s$pspace" "$line")"
+                printf "%s" "$mspace$(_ansi $options --format="$pspace%s%$(( textwidth - length + 1 ))s$pspace" "$line")"
             fi
             length=0; line=''
         }
     done
 
-    for _ in $(seq 1 "$padding"); do echo "$mspace$(_ansi $options --nl --format="%${width}s")"; done
+    for _ in $(seq 1 "$padding"); do printf "%s" "$mspace$(_ansi $options --nl --format="%${width}s")"; done
     for _ in $(seq 1 "$margin"); do echo ""; done
     [ -n "$newline" ] && echo ""
 )
@@ -161,8 +161,8 @@ _dotenv()(
 
     touch .env.dist .env
     while read -r line; do
-        if [ "$(echo "$line" | head -c1)" = '#' ]; then
-            help=$(echo "$line" | cut -c2- | xargs)
+        if [ "$(printf "%s" "$line" | head -c1)" = '#' ]; then
+            help=$(printf "%s" "$line" | cut -c2- | xargs)
             config="$config$line\\n"
             continue
         fi
@@ -172,9 +172,9 @@ _dotenv()(
             continue
         fi
 
-        key="$(echo "$line" | cut -d= -f1)"
-        value="$(echo "$line" | cut -d= -f2-)"
-        default="$(eval echo "$value")"
+        key="$(printf "%s" "$line" | cut -d= -f1)"
+        value="$(printf "%s" "$line" | cut -d= -f2-)"
+        default="$(eval printf "%s" "$value")"
         value="$default"
         if [ "$1" = '-f' ] || [ "$1" = '--force' ] || ! grep "^${key}=" .env > /dev/null; then
             [ -n "$help" ] && _ansi --white --nl "  $help"
