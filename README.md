@@ -2,7 +2,7 @@ Shell Task Runner
 =================
 
 Simple, lightweight, self-documented task runner for POSIX Shell.
-Compatible with dash, ash, bash, Linux, Mac OS, alpine, docker.
+Compatible with ash, bash, dash, Linux, Mac OS, alpine, docker.
 
 Usage
 -----
@@ -15,7 +15,7 @@ task_hello() { ## Print Hello World box
 }
 
 url="https://raw.githubusercontent.com/webuni/shell-task-runner/master/run"
-command -v 'wget'>/dev/null && eval "$(wget -qO- "$url")" || eval "$(curl -s "$url")"
+if [ -n "$(command -v 'wget')" ]; then eval "$(wget -qO- "$url")"; else eval "$(curl -s "$url")"; fi
 ```
 
 And then you just have to run this file `sh ./run`.

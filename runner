@@ -1,7 +1,6 @@
 #!/bin/sh
-
+#
 # Shell Task Runner
-# =================
 
 set -e
 
@@ -43,7 +42,7 @@ _tasks()(
 )
 
 _shell_escape()(
-    printf "%s" "$1" | sed -e 's/\(["\& '"'"']\)/\\\1/g'
+    printf '%s' "$1" | sed -e 's/\(["\& '"'"']\)/\\\1/g'
 )
 
 _quote(){
@@ -122,10 +121,10 @@ _box()(
     text=""; options=""; newline=""; padding=1; margin=0
     while [ -n "$1" ]; do
         case "$1" in
-            --p=*) padding="${1#--p=}";;
-            --padding=*) padding="${1#--padding=}";;
-            --m=*) margin="${1#--m=}";;
-            --margin=*) margin="${1#--margin=}";;
+            --p=*|--padding=*) padding="${1#*=}";;
+            -p|--padding) shift; padding="$1";;
+            --m=*|--margin=*) margin="${1#*=}";;
+            -m|--margin) shift; margin="$1";;
             --nl|--new-line) newline=1;;
             --*) options="$options $1";;
             *) text="$text$1";;
@@ -141,10 +140,10 @@ _box()(
     for _ in $(seq 1 "$margin"); do echo ""; done
     for _ in $(seq 1 "$padding"); do echo "$mspace$(_ansi $options --nl --format="%${width}s")"; done
 
-    esc="$(printf "\\033")"
+    esc="$(printf '\033')"
     printf "$(_printf_escape "$text\\n ")" | while IFS= read -r part; do
         length=0; line=''; state=0
-        printf "%s\\n" "$part" | sed 's/\(.\)/\1\n/g' | {
+        printf '%s\n' "$part" | sed 's/\(.\)/\1\n/g' | {
             LANG=C; LC_ALL=C
             while IFS= read -r char; do
                 line="$line$char"
@@ -155,18 +154,18 @@ _box()(
                 fi
                 if [ "$state" -eq 1 ] && [ "m" = "$char" ]; then state=0; fi
                 if [ "$length" -eq "$textwidth" ]; then
-                    printf "%s" "$mspace$(_ansi $options --format="$pspace%s%$(( textwidth - length ))s$pspace" "$line")"
+                    printf '%s\n' "$mspace$(_ansi $options --format="$pspace%s%$(( textwidth - length ))s$pspace" "$line")"
                     length=0; line='';
                 fi
             done
             if [ "$length" -gt 0 ]; then
-                printf "%s" "$mspace$(_ansi $options --format="$pspace%s%$(( textwidth - length + 1 ))s$pspace" "$line")"
+                printf '%s\n' "$mspace$(_ansi $options --format="$pspace%s%$(( textwidth - length + 1 ))s$pspace" "$line")"
             fi
             length=0; line=''
         }
     done
 
-    for _ in $(seq 1 "$padding"); do printf "%s" "$mspace$(_ansi $options --nl --format="%${width}s")"; done
+    for _ in $(seq 1 "$padding"); do printf '%s\n' "$mspace$(_ansi $options --nl --format="%${width}s")"; done
     for _ in $(seq 1 "$margin"); do echo ""; done
     [ -n "$newline" ] && echo ""
 )
