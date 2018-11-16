@@ -29,6 +29,10 @@ Helper functions
 
 ### _box
 
+### _doc_comment
+
+### _doc_title
+
 ### _docker_run
 
 ### _dotenv
