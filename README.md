@@ -35,6 +35,8 @@ Helper functions
 
 ### _log
 
+### _quote
+
 ### _shell_escape
 
 ### _printf_escape
@@ -46,3 +48,4 @@ Inspiration
  - https://github.com/jez/bask
  - https://github.com/stylemistake/runner 
  - https://github.com/fidian/ansi
+- [Rich’s sh (POSIX shell) tricks](http://www.etalabs.net/sh_tricks.html)

@@ -20,6 +20,10 @@ _shell_escape()(
     printf "%s" "$1" | sed -e 's/\(["\& '"'"']\)/\\\1/g'
 )
 
+_quote(){
+    printf '%s' "$1" | sed "s/'/'\\\\''/g;1s/^/'/;\$s/\$/'/"
+}
+
 _printf_escape()(
     printf "%s" "$1" | sed "s/%/%%/g"
 )
@@ -66,7 +70,7 @@ _ansi()(
             --gray) start="$start\\033[90m" stop="\\033[39m$stop";;
             --*-intense) start="$start\\033[9$(_color "$(echo "$1" | cut -d- -f3)")m" stop="\\033[39m$stop";;
             --*) start="$start\\033[3$(_color "${1##*-}")m" stop="\\033[39m$stop";;
-            *) text="$text $(_shell_escape "$1")";;
+            *) text="$text $(_quote "$1")";;
         esac
         shift
     done
