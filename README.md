@@ -23,27 +23,48 @@ And then you just have to run this file `sh ./run`.
 Helper functions
 ----------------
 
-### _align
+- **_align**
 
-### _ansi
+- **_ansi**
 
-### _box
+- **_box**
 
-### _doc_comment
+- **_doc_comment**
 
-### _doc_title
+- **_doc_title**
 
-### _docker_run
+- **_docker_run**
 
-### _dotenv
+- **_dotenv**
 
-### _log
+- **_header**: Application header.
 
-### _quote
+- **_log**
 
-### _shell_escape
+- **_quote**
 
-### _printf_escape
+- **_printf_escape**
+
+- **_shell_escape**
+
+- **_tasks**: List of functions with prefix `task_`.
+
+Customization
+-------------
+
+If you want to replace a helper functions, you should import runner script and then implement helper function.
+At the end of the file, you must explicitly call `_run`:
+
+```bash
+url="https://raw.githubusercontent.com/webuni/shell-task-runner/master/run"
+if [ -n "$(command -v 'wget')" ]; then eval "$(wget -qO- "$url")"; else eval "$(curl -s "$url")"; fi
+
+_header()(
+    printf '%s\n\n' "$(_ansi --bold "My application")"
+)
+
+_run "$@"
+```
 
 Inspiration
 -----------
