@@ -184,7 +184,7 @@ _log()(
 )
 
 _docker_run()(
-    if [ -t 1 ]; then tty="-t"; fi
+    if [ -t 0 ]; then tty="-t"; fi
     docker run --rm -i $tty -v "$(pwd)":"$(pwd)" -w "$(pwd)" -e USER_ID="$(id -u)" -e GROUP_ID="$(id -g)" "$@"
 )
 
