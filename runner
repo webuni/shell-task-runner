@@ -1,6 +1,8 @@
 #!/bin/sh
 #
 # Shell Task Runner
+#
+# (c) Martin Hasoň <martin.hason@gmail.com>
 
 set -e
 
