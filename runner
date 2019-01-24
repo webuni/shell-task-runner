@@ -208,7 +208,7 @@ _dotenv()(
 
         key="$(printf "%s" "$line" | cut -d= -f1)"
         value="$(printf "%s" "$line" | cut -d= -f2-)"
-        default="$(eval printf "%s" "$value")"
+        default="$(eval printf "%s" "$value" 2>/dev/null)" || default="$value"
         value="$default"
         if [ "$1" = '-f' ] || [ "$1" = '--force' ] || ! grep "^${key}=" .env > /dev/null; then
             [ -n "$help" ] && _ansi --white --nl "  $help"
