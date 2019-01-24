@@ -167,7 +167,7 @@ _box()(
 
     for _ in $(seq 1 "$padding"); do printf '%s\n' "$mspace$(_ansi $options --nl --format="%${width}s")"; done
     for _ in $(seq 1 "$margin"); do echo ""; done
-    [ -n "$newline" ] && echo ""
+    if [ -n "$newline" ]; then echo ""; fi
 )
 
 _log()(
