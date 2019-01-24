@@ -6,6 +6,10 @@
 
 set -e
 
+__source="${__source:-$(cat $0)}"
+__import="$__import"
+__import_prefix="$__import_prefix"
+
 _header()(
     name="$(basename "$(cd "$(dirname "$0")"; pwd -P)")"
     printf "%s\\nUsage %s [task] [task_options]\\n\\n" "$(_ansi --underline "Application $(_ansi --bold --yellow "$name")")" "$0"
@@ -15,7 +19,7 @@ _doc_comment()(
     func="$1"
     re_comment='(^|\r)[\t ]*((#|:)+ ?([^\r]*))'
     re_func='(^|\r)?[\t ]*'$func'[\t ]*\([\t ]*\)[^\{\(]*[\{\(][^\r]*\s*'
-    code="$(cat "$0" | tr -d '\r' | tr '\n' '\r')"
+    code="$(printf '%s' "${2:-$__source}" | tr -d '\r' | tr '\n' '\r')"
     for pattern in "(${re_comment})+${re_func}" "${re_func}(${re_comment})+"; do
         comment="$(printf "%s" "$code" | awk 'match($0, /'"$pattern"'/) {print substr($0, RSTART, RLENGTH)}' | sed -E 's/'"$re_func"'//g;s/'"$re_comment"'/\4\r/g' | tr '\r' '\n')"
         if [ -n "$comment" ]; then
@@ -28,7 +32,7 @@ _doc_comment()(
 _doc_title()(
     title="$(_doc_comment "$1" | sed -n '/./{p;q;}')"
     if [ -z "$title" ]; then
-        title="$(cat "$0" | grep -E '^[\t ]*'"$1"'[\t ]*\([\t ]*\)[\t \{\(]*#'| sed -r 's/^[^#]+#+[\t ]*(.*)/\1/')"
+        title="$(printf '%s' "${2:-$__source}" | grep -E '^[\t ]*'"$1"'[\t ]*\([\t ]*\)[\t \{\(]*#' | sed -E 's/^[^#]+#+[\t ]*(.*)/\1/')"
     fi
 
     printf '%s' "$title"
@@ -226,7 +230,22 @@ _dotenv()(
     printf "$(_printf_escape "$config")" > .env
 )
 
+_import(){
+    if [ ! -r "$1" ]; then return 1; fi
+
+    local old__import="$__import";
+    local old__import_prefix="$__import_prefix"
+    __import=1
+    __import_prefix="${__import_prefix}${2}"
+    local code="$(cat "$1" | sed -E "s/task_([a-zA-Z0-9_]+)/task_${__import_prefix}\1/g")"
+    eval printf '%s' "$code"
+    __import="$old__import"
+    __import_prefix="$old__import_prefix"
+    __source="$__source $code"
+}
+
 _run()(
+    if [ "$__import" ]; then return; fi
     _ansi --reset
     if [ -z "$1" ] || [ "$1" = '-h' ] || [ "$1" = '--help' ]; then
         _header
