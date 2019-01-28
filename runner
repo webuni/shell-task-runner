@@ -266,10 +266,13 @@ _run()(
         _box --bg-red --white --nl "Task $(_ansi --bold "$1") doesn't exist." >&2 && _tasks_list >&1 && exit 1
     fi
 
-    if [ "$#" -gt 0 ]; then
-        shift
-        "$command" "$@"
+    if [ "$#" -eq 0 ]; then return; fi
+
+    shift; set -- "$command" "$@"
+    if [ -n "$(command -v "_task_decorator")" ]; then
+        set -- "_task_decorator" "$@"
     fi
+    "$@"
 )
 
 if [ ! "$(grep -E "^\\s*_run(\\s+|$)" "$0" | grep -Ev "_run\\s*\\(")" ]; then
