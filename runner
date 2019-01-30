@@ -61,11 +61,11 @@ if [ -z "$(command -v '_quote')" ]; then _quote()(
 ) fi
 
 if [ -z "$(command -v '_printf_escape')" ]; then _printf_escape()(
-    printf "%s" "$1" | sed "s/%/%%/g"
+    printf '%s' "$1" | sed 's/%/%%/g'
 ) fi
 
-    printf "%s" "$1" | sed -r 's/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]//g'
 if [ -z "$(command -v '_ansifilter')" ]; then _ansifilter()(
+    printf '%s' "$1" | sed -E 's/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]//g'
 ) fi
 
 if [ -z "$(command -v '_stty')" ]; then _stty()(
