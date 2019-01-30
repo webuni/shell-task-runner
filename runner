@@ -10,12 +10,12 @@ __source="${__source:-$(cat $0)}"
 __import="$__import"
 __import_prefix="$__import_prefix"
 
-_header()(
+if [ -z "$(command -v '_header')" ]; then _header()(
     name="$(basename "$(cd "$(dirname "$0")"; pwd -P)")"
     printf "%s\\nUsage %s [task] [task_options]\\n\\n" "$(_ansi --underline "Application $(_ansi --bold --yellow "$name")")" "$0"
-)
+) fi
 
-_doc_comment()(
+if [ -z "$(command -v '_doc_comment')" ]; then _doc_comment()(
     func="$1"
     re_comment='(^|\r)[\t ]*((#|:)+ ?([^\r]*))'
     re_func='(^|\r)?[\t ]*'$func'[\t ]*\([\t ]*\)[^\{\(]*[\{\(][^\r]*\s*'
@@ -27,53 +27,53 @@ _doc_comment()(
             break
         fi
     done
-)
+) fi
 
-_doc_title()(
+if [ -z "$(command -v '_doc_title')" ]; then _doc_title()(
     title="$(_doc_comment "$1" | sed -n '/./{p;q;}')"
     if [ -z "$title" ]; then
         title="$(printf '%s' "${2:-$__source}" | grep -E '^[\t ]*'"$1"'[\t ]*\([\t ]*\)[\t \{\(]*#' | sed -E 's/^[^#]+#+[\t ]*(.*)/\1/')"
     fi
 
     printf '%s' "$title"
-)
+) fi
 
-_tasks()(
+if [ -z "$(command -v '_tasks')" ]; then _tasks()(
     pattern='^\s*task_([a-zA-Z0-9_]+)\s*\(\s*\).*'
     printf "%s" "${1:-$__source}" | grep -E "$pattern" | sort | while IFS= read -r line; do
         printf '%s\n' "$(printf '%s' "$line" | sed -E "s/$pattern/\\1/")"
     done
 )
 
-_tasks_list()(
+if [ -z "$(command -v '_tasks_list')" ]; then _tasks_list()(
     _ansi --bold --yellow --nl "Tasks:"
     for command in $(_tasks "$@"); do
         printf '%s%s\n' "$(_ansi --cyan --format '%-25s' "$(echo "$command" | sed 's/__/:/g')")" "$(_doc_title "task_$command")"
     done
-)
+) fi
 
-_shell_escape()(
+if [ -z "$(command -v '_shell_escape')" ]; then _shell_escape()(
     printf '%s' "$1" | sed -e 's/\(["\& '"'"']\)/\\\1/g'
-)
+) fi
 
-_quote(){
+if [ -z "$(command -v '_quote')" ]; then _quote()(
     printf '%s' "$1" | sed "s/'/'\\\\''/g;1s/^/'/;\$s/\$/'/"
-}
+) fi
 
-_printf_escape()(
+if [ -z "$(command -v '_printf_escape')" ]; then _printf_escape()(
     printf "%s" "$1" | sed "s/%/%%/g"
-)
+) fi
 
-_ansifilter()(
     printf "%s" "$1" | sed -r 's/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]//g'
-)
+if [ -z "$(command -v '_ansifilter')" ]; then _ansifilter()(
+) fi
 
-_stty()(
+if [ -z "$(command -v '_stty')" ]; then _stty()(
     sleep 0.1 # Fix tty delay for docker run -t ...
     stty "$@" 2>/dev/null
-)
+) fi
 
-_color()(
+if [ -z "$(command -v '_color')" ]; then _color()(
     case "$1" in
         black) echo 0;;
         red) echo 1;;
@@ -84,9 +84,9 @@ _color()(
         cyan) echo 6;;
         white) echo 7;;
     esac
-)
+) fi
 
-_ansi()(
+if [ -z "$(command -v '_ansi')" ]; then _ansi()(
     text='' start='' stop="" newline='' format="%s"
     while [ -n "$1" ]; do
         case "$1" in
@@ -113,9 +113,9 @@ _ansi()(
 
     eval set -- "$text"
     printf "${start}${format}${stop}${newline}" "$@"
-)
+) fi
 
-_align()(
+if [ -z "$(command -v '_align')" ]; then _align()(
     for text in "$@"; do true; done
     rawtext="$(_ansifilter "$text")"
     width=$(( $(_stty size | cut -d' ' -f2) + ${#text} - ${#rawtext} ))
@@ -126,9 +126,9 @@ _align()(
         --center) printf "%${left_span}s%${right_span}s\\n" "$text";;
         *) printf "%s" "$text";;
     esac
-)
+) fi
 
-_box()(
+if [ -z "$(command -v '_box')" ]; then _box()(
     text=""; options=""; newline=""; padding=1; margin=0
     while [ -n "$1" ]; do
         case "$1" in
@@ -179,9 +179,9 @@ _box()(
     for _ in $(seq 1 "$padding"); do printf '%s\n' "$mspace$(_ansi $options --nl --format="%${width}s")"; done
     for _ in $(seq 1 "$margin"); do echo ""; done
     if [ -n "$newline" ]; then echo ""; fi
-)
+) fi
 
-_log()(
+if [ -z "$(command -v '_log')" ]; then _log()(
     color="gray"
     case $1 in
         --error) color="red"; shift;;
@@ -192,14 +192,14 @@ _log()(
     esac
 
     printf "[%s] %s\\n" "$(_ansi "--${color}" "$(date -Iseconds)")" "$@"
-)
+) fi
 
-_docker_run()(
+if [ -z "$(command -v '_docker_run')" ]; then _docker_run()(
     if [ -t 0 ]; then tty="-t"; fi
     docker run --rm -i $tty -v "$(pwd)":"$(pwd)" -w "$(pwd)" -e USER_ID="$(id -u)" -e GROUP_ID="$(id -g)" "$@"
-)
+) fi
 
-_dotenv()(
+if [ -z "$(command -v '_dotenv')" ]; then _dotenv()(
     config=""
 
     touch .env.dist .env
@@ -233,9 +233,9 @@ _dotenv()(
         help=""
     done < .env.dist
     printf "$(_printf_escape "$config")" > .env
-)
+) fi
 
-_import(){
+if [ -z "$(command -v '_import')" ]; then _import(){
     if [ ! -r "$1" ]; then return 1; fi
 
     local old__import="$__import";
@@ -247,9 +247,9 @@ _import(){
     __import="$old__import"
     __import_prefix="$old__import_prefix"
     __source="$__source $code"
-}
+} fi
 
-_run()(
+if [ -z "$(command -v '_run')" ]; then _run()(
     if [ "$__import" ]; then return; fi
     _ansi --reset
     name="$(printf '%s' "$1" | sed 's/:/__/g')"
@@ -273,7 +273,7 @@ _run()(
         set -- "_task_decorator" "$@"
     fi
     "$@"
-)
+) fi
 
 if [ ! "$(grep -E "^\\s*_run(\\s+|$)" "$0" | grep -Ev "_run\\s*\\(")" ]; then
     _run "$@"
