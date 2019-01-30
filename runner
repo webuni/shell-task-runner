@@ -275,11 +275,17 @@ if [ -z "$(command -v '_run')" ]; then _run()(
         _header
         printf "%s\\n  %-25s%s\\n\\n" "$(_ansi --cyan "Options:")" "$(_ansi --green "-h, --help")" "Print this message and exit"
         _tasks_list
+        return
     elif [ -n "$(command -v "task_$name")" ]; then
         command="task_$name"
     elif [ -n "$(command -v "$name")" ] && [ "$(type "$name" | wc -l)" -gt 1 ]; then
         command="$name"
-    elif [ -z "$command" ]; then
+    else
+        tasks="$(_tasks)" task="$(echo "$tasks" | grep -e "^$(printf '%s' "${name}" | sed 's/__/.*__/g')")"
+        if [ "$(echo "$task" | wc -l)" = 1 ]; then command="task_$task"; fi
+    fi
+
+    if [ -z "$command" ]; then
         _header
         _box --bg-red --white --nl "Task $(_ansi --bold "$1") doesn't exist." >&2 && _tasks_list >&1 && exit 1
     fi
