@@ -43,7 +43,7 @@ if [ -z "$(command -v '_tasks')" ]; then _tasks()(
     printf "%s" "${1:-$__source}" | grep -E "$pattern" | sort | while IFS= read -r line; do
         printf '%s\n' "$(printf '%s' "$line" | sed -E "s/$pattern/\\1/")"
     done
-)
+) fi
 
 if [ -z "$(command -v '_tasks_list')" ]; then _tasks_list()(
     _ansi --bold --yellow --nl "Tasks:"
