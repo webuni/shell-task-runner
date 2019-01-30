@@ -278,19 +278,17 @@ if [ -z "$(command -v '_run')" ]; then _run()(
         return
     elif [ -n "$(command -v "task_$name")" ]; then
         command="task_$name"
-    elif command -V "$name" | head -1 | grep -qe 'function'; then
+    elif command -v "$name" | head -1 | grep -qe 'function'; then
         command="$name"
     else
         ! tasks="$(_tasks)" task="$(printf '%s' "$tasks" | grep -e "^$(printf '%s' "$name" | sed -e 's/__/.*__/g')")"
-        if [ -n "$task" ] && [ "$(printf '%s' "$task" | wc -l)" = 1 ]; then command="task_$task"; fi
+        if [ -n "$task" ] && [ "$(printf '%s\n' "$task" | wc -l)" = 1 ]; then command="task_$task"; fi
     fi
 
     if [ -z "$command" ]; then
         _header
         _box --bg-red --white --nl "Task $(_ansi --bold "$1") doesn't exist." >&2 && _tasks_list >&1 && exit 1
     fi
-
-    if [ "$#" -eq 0 ]; then return; fi
 
     shift; set -- "$command" "$@"
     if [ -n "$(command -v "_task_decorator")" ]; then
