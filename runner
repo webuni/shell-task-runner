@@ -196,7 +196,25 @@ if [ -z "$(command -v '_log')" ]; then _log()(
 
 if [ -z "$(command -v '_docker_run')" ]; then _docker_run()(
     if [ -t 0 ]; then tty="-t"; fi
-    docker run --rm -i $tty -v "$(pwd)":"$(pwd)" -w "$(pwd)" -e USER_ID="$(id -u)" -e GROUP_ID="$(id -g)" "$@"
+    docker run --rm -i $tty -v "$(pwd):$(pwd)" -w "$(pwd)" "$@"
+) fi
+
+if [ -z "$(command -v '_docker_compose')" ]; then _docker_compose()(
+    docker-compose "$@"
+) fi
+
+if [ -z "$(command -v '_docker_compose_run')" ]; then _docker_compose_run()(
+    service="" services="$(_docker_compose config --services)"
+    for arg in "$@"; do
+        if echo "$services" | grep -qwe "$arg"; then service="$arg"; break; fi
+    done
+
+    if [ -t 1 ]; then DTTY=""; else DTTY="-T"; fi
+    if _docker_compose ps | grep -qe "_${service}_1.* Up "; then
+        _docker_compose exec $DTTY --user "$(id -u):$(id -g)" "$@"
+    else
+        _docker_compose run --rm $DTTY "$@"
+    fi
 ) fi
 
 if [ -z "$(command -v '_dotenv')" ]; then _dotenv()(
