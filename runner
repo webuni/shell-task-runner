@@ -278,11 +278,11 @@ if [ -z "$(command -v '_run')" ]; then _run()(
         return
     elif [ -n "$(command -v "task_$name")" ]; then
         command="task_$name"
-    elif [ -n "$(command -v "$name")" ] && [ "$(type "$name" | wc -l)" -gt 1 ]; then
+    elif command -V "$name" | head -1 | grep -qe 'function'; then
         command="$name"
     else
-        tasks="$(_tasks)" task="$(echo "$tasks" | grep -e "^$(printf '%s' "${name}" | sed 's/__/.*__/g')")"
-        if [ "$(echo "$task" | wc -l)" = 1 ]; then command="task_$task"; fi
+        ! tasks="$(_tasks)" task="$(printf '%s' "$tasks" | grep -e "^$(printf '%s' "$name" | sed -e 's/__/.*__/g')")"
+        if [ -n "$task" ] && [ "$(printf '%s' "$task" | wc -l)" = 1 ]; then command="task_$task"; fi
     fi
 
     if [ -z "$command" ]; then
