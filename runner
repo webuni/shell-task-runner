@@ -277,7 +277,7 @@ if [ -z "$(command -v '_run')" ]; then _run()(
         _tasks_list
     elif [ -n "$(command -v "task_$name")" ]; then
         command="task_$name"
-    elif [ -n "$(command -v "$name")" ]; then
+    elif [ -n "$(command -v "$name")" ] && [ "$(type "$name" | wc -l)" -gt 1 ]; then
         command="$name"
     elif [ -z "$command" ]; then
         _header
