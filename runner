@@ -297,6 +297,4 @@ if [ -z "$(command -v '_run')" ]; then _run()(
     "$@"
 ) fi
 
-if [ ! "$(grep -E "^\\s*_run(\\s+|$)" "$0" | grep -Ev "_run\\s*\\(")" ]; then
-    _run "$@"
-fi
+if [ ! "$(grep -E "^\\s*_run(\\s+|$)" "$0")" ]; then _run "$@"; fi
