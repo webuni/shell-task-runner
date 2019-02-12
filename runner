@@ -278,7 +278,7 @@ if [ -z "$(command -v '_run')" ]; then _run()(
         return
     elif [ -n "$(command -v "task_$name")" ]; then
         command="task_$name"
-    elif LC_ALL=C command -V "$name" | head -1 | grep -qe 'function'; then
+    elif LC_ALL=C command -V "$name" 2>/dev/null | head -1 | grep -qe 'function'; then
         command="$name"
     else
         ! tasks="$(_tasks)" task="$(printf '%s' "$tasks" | grep -e "^$(printf '%s' "$name" | sed -e 's/__/.*__/g')")"
