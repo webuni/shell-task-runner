@@ -219,8 +219,10 @@ if [ -z "$(command -v '_docker_compose_run')" ]; then _docker_compose_run()(
 
 if [ -z "$(command -v '_dotenv')" ]; then _dotenv()(
     config=""
+    target="${1:-.env}"
+    source="${2:-.env.dist}"
 
-    touch .env.dist .env
+    touch "$source" "$target"
     while read -r line; do
         if [ "$(printf "%s" "$line" | head -c1)" = '#' ]; then
             help=$(printf "%s" "$line" | cut -c2- | xargs)
@@ -237,7 +239,7 @@ if [ -z "$(command -v '_dotenv')" ]; then _dotenv()(
         value="$(printf "%s" "$line" | cut -d= -f2-)"
         default="$(eval printf "%s" "$value" 2>/dev/null)" || default="$value"
         value="$default"
-        if [ "$1" = '-f' ] || [ "$1" = '--force' ] || ! grep "^${key}=" .env > /dev/null; then
+        if [ "$1" = '-f' ] || [ "$1" = '--force' ] || ! grep "^${key}=" "$target" > /dev/null; then
             [ -n "$help" ] && _ansi --white --nl "  $help"
             printf "%s (%s): $(test -t 1 && printf "\\n")" "$(_ansi --cyan "  $key")" "$(_ansi --yellow "$default")"
             if [ -t 1 ] && read -r value </dev/tty && [ "$value" = "" ]; then
@@ -245,12 +247,12 @@ if [ -z "$(command -v '_dotenv')" ]; then _dotenv()(
             fi
             value="$(_shell_escape "$value")"
         else
-            value="$(grep "^${key}=" .env | cut -d= -f2-)"
+            value="$(grep "^${key}=" "$target" | cut -d= -f2-)"
         fi
         config="$config$key=$value\\n"
         help=""
-    done < .env.dist
-    printf "$(_printf_escape "$config")" > .env
+    done < "$source"
+    printf "$(_printf_escape "$config")" > "$target"
 ) fi
 
 if [ -z "$(command -v '_import')" ]; then _import(){
