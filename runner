@@ -196,7 +196,7 @@ if [ -z "$(command -v '_log')" ]; then _log()(
 
 if [ -z "$(command -v '_docker_run')" ]; then _docker_run()(
     if [ -t 0 ]; then tty="-t"; fi
-    docker run --rm -i $tty -v "$(pwd):$(pwd)" -w "$(pwd)" "$@"
+    docker run --rm -i $tty -e DISPLAY="$DISPLAY" -v /tmp/.X11-unix:/tmp/.X11-unix -v "$(pwd):$(pwd)" -w "$(pwd)" "$@"
 ) fi
 
 if [ -z "$(command -v '_docker_compose')" ]; then _docker_compose()(
