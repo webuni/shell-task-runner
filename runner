@@ -38,6 +38,20 @@ if [ -z "$(command -v '_doc_title')" ]; then _doc_title()(
     printf '%s' "$title"
 ) fi
 
+if [ -z "$(command -v '__doc_tags')" ]; then _doc_tags()(
+    tags="$(_doc_comment "$1" | grep -E '^ *@' | sed 's/^ *//')"
+    if [ -n "$3" ]; then only_delimited='-s'; fi
+    if [ -n "$2" ]; then
+        tags="$(printf '%s' "$tags" | grep -E "^@?$2" | cut -d' ' $only_delimited -f2-)"
+    fi
+
+    if [ -n "$3" ] && [ -z "$tags" ]; then
+        tags="$3"
+    fi
+
+    printf '%s' "$tags"
+) fi
+
 if [ -z "$(command -v '_tasks')" ]; then _tasks()(
     pattern='^\s*task_([a-zA-Z0-9_]+)\s*\(\s*\).*'
     printf "%s" "${1:-$__source}" | grep -E "$pattern" | sort | while IFS= read -r line; do
@@ -293,7 +307,7 @@ if [ -z "$(command -v '_run')" ]; then _run()(
     fi
 
     shift; set -- "$command" "$@"
-    if [ -n "$(command -v "_task_decorator")" ]; then
+    if [ -n "$(command -v "_task_decorator")" ] && [ -z "$(_doc_tags "$command" | grep -E '^@no[_-]?decorat(e|or)')" ]; then
         set -- "_task_decorator" "$@"
     fi
     "$@"
