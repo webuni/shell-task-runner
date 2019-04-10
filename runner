@@ -321,8 +321,8 @@ if [ -z "$(command -v '_run')" ]; then _run()(
     fi
 
     shift; set -- "$command" "$@"
-    if [ -n "$(command -v "_command_decorator")" ] && [ -z "$(_doc_tags "$command" | grep -E '^@no[_-]?decorat(e|or)')" ]; then
-        set -- "_command_decorator" "$@"
+    if [ -n "$(command -v "_decorator")" ] && [ -z "$(_doc_tags "$command" | grep -E '^@no[_-]?decorat(e|or)')" ]; then
+        set -- "_decorator" "$@"
     fi
     "$@"
 ) fi
