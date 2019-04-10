@@ -12,7 +12,7 @@ __import_prefix="$__import_prefix"
 
 if [ -z "$(command -v '_header')" ]; then _header()(
     name="$(basename "$(cd "$(dirname "$0")"; pwd -P)")"
-    printf "%s\\nUsage %s [task] [task_options]\\n\\n" "$(_ansi --underline "Application $(_ansi --bold --yellow "$name")")" "$0"
+    printf "%s\\nUsage %s [command] [command_options]\\n\\n" "$(_ansi --underline "Application $(_ansi --bold --yellow "$name")")" "$0"
 ) fi
 
 if [ -z "$(command -v '_doc_comment')" ]; then _doc_comment()(
@@ -52,17 +52,30 @@ if [ -z "$(command -v '__doc_tags')" ]; then _doc_tags()(
     printf '%s' "$tags"
 ) fi
 
-if [ -z "$(command -v '_tasks')" ]; then _tasks()(
-    pattern='^\s*task_([a-zA-Z0-9_]+)\s*\(\s*\).*'
-    printf "%s" "${1:-$__source}" | grep -E "$pattern" | sort | while IFS= read -r line; do
+if [ -z "$(command -v '_commands')" ]; then _commands()(
+    pattern="^\s*${1:-task_}([a-zA-Z0-9_]+)\s*\(\s*\).*"
+    printf "%s" "${2:-$__source}" | grep -E "$pattern" | sort | while IFS= read -r line; do
         printf '%s\n' "$(printf '%s' "$line" | sed -E "s/$pattern/\\1/")"
     done
 ) fi
 
-if [ -z "$(command -v '_tasks_list')" ]; then _tasks_list()(
-    _ansi --bold --yellow --nl "Tasks:"
-    for command in $(_tasks "$@"); do
-        printf '%s%s\n' "$(_ansi --cyan --format '%-25s' "$(echo "$command" | sed 's/__/:/g')")" "$(_doc_title "task_$command")"
+if [ -z "$(command -v '_commands_list')" ]; then _commands_list()(
+    list='' command_prefix="${1:-task_}" commands="$(_commands "$command_prefix" "$2")" prevprefix='' length="$(echo "$commands" | wc -L)"
+    for command in $(echo "$commands" | grep -v '__') $(echo "$commands" | grep '__'); do
+        prefix="$(echo "$command" | grep '__' | awk -F'__' '{printf $1}')"
+        if [ -n "$prefix" ] && [ "$prefix" != "$prevprefix" ]; then
+            prevprefix="$prefix" && list="$(printf '%s\n# %s' "$list" "$prefix")"
+        fi
+        list="$(printf '%s\n%s %s' "$list" "$(echo "$command" | sed 's/__/:/g')" "$(_doc_title "$command_prefix$command")")"
+    done
+
+    _ansi --yellow --nl "Available commands:"
+    echo "$list" | while read -r command; do
+        if [ "$command" != "${command#\#}" ]; then
+            _ansi --yellow --nl "${command#\#}"
+        else
+            printf '%s%s\n' "$(_ansi --green --format '  %-25s' "${command%% *}")" "${command#* }"
+        fi
     done
 ) fi
 
@@ -285,30 +298,31 @@ if [ -z "$(command -v '_import')" ]; then _import(){
 
 if [ -z "$(command -v '_run')" ]; then _run()(
     if [ "$__import" ]; then return; fi
+    prefix="${COMMAND_PREFIX:-task_}"
     _ansi --reset
     name="$(printf '%s' "$1" | sed 's/:/__/g')"
     if [ -z "$name" ] || [ "$name" = '-h' ] || [ "$name" = '--help' ]; then
         _header
         printf "%s\\n  %-25s%s\\n\\n" "$(_ansi --cyan "Options:")" "$(_ansi --green "-h, --help")" "Print this message and exit"
-        _tasks_list
+        _commands_list "$prefix"
         return
-    elif [ -n "$(command -v "task_$name")" ]; then
-        command="task_$name"
+    elif [ -n "$(command -v "$prefix$name")" ]; then
+        command="$prefix$name"
     elif LC_ALL=C command -V "$name" 2>/dev/null | head -1 | grep -qe 'function'; then
         command="$name"
     else
         ! tasks="$(_tasks)" task="$(printf '%s' "$tasks" | grep -e "^$(printf '%s' "$name" | sed -e 's/__/.*__/g')")"
-        if [ -n "$task" ] && [ "$(printf '%s\n' "$task" | wc -l)" = 1 ]; then command="task_$task"; fi
+        if [ -n "$task" ] && [ "$(printf '%s\n' "$task" | wc -l)" = 1 ]; then command="$prefix$task"; fi
     fi
 
     if [ -z "$command" ]; then
         _header
-        _box --bg-red --white --nl "Task $(_ansi --bold "$1") doesn't exist." >&2 && _tasks_list >&1 && exit 1
+        _box --bg-red --white --nl "Command $(_ansi --bold "$1") doesn't exist." >&2 && _commands_list "$prefix" >&1 && exit 1
     fi
 
     shift; set -- "$command" "$@"
-    if [ -n "$(command -v "_task_decorator")" ] && [ -z "$(_doc_tags "$command" | grep -E '^@no[_-]?decorat(e|or)')" ]; then
-        set -- "_task_decorator" "$@"
+    if [ -n "$(command -v "_command_decorator")" ] && [ -z "$(_doc_tags "$command" | grep -E '^@no[_-]?decorat(e|or)')" ]; then
+        set -- "_command_decorator" "$@"
     fi
     "$@"
 ) fi
