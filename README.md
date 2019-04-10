@@ -39,6 +39,8 @@ Helper functions
 
 - **_header**: Application header.
 
+- **_indent**
+
 - **_log**
 
 - **_quote**

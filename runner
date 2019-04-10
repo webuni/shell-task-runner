@@ -142,6 +142,10 @@ if [ -z "$(command -v '_ansi')" ]; then _ansi()(
     printf "${start}${format}${stop}${newline}" "$@"
 ) fi
 
+if [ -z "$(command -v '_indent')" ]; then _indent()(
+    sed "s/^/${1:-  }/"
+) fi
+
 if [ -z "$(command -v '_align')" ]; then _align()(
     for text in "$@"; do true; done
     rawtext="$(_ansifilter "$text")"
