@@ -64,17 +64,17 @@ if [ -z "$(command -v '_commands_list')" ]; then _commands_list()(
     for command in $(echo "$commands" | grep -v '__') $(echo "$commands" | grep '__'); do
         prefix="$(echo "$command" | grep '__' | awk -F'__' '{printf $1}')"
         if [ -n "$prefix" ] && [ "$prefix" != "$prevprefix" ]; then
-            prevprefix="$prefix" && list="$(printf '%s\n# %s' "$list" "$prefix")"
+            prevprefix="$prefix"; list="$(printf '%s\n# %s' "$list" "$prefix")"
         fi
         list="$(printf '%s\n%s %s' "$list" "$(echo "$command" | sed 's/__/:/g')" "$(_doc_title "$command_prefix$command")")"
     done
 
     _ansi --yellow --nl "Available commands:"
-    echo "$list" | while read -r command; do
+    echo "$list" | sed '1d' | while read -r command; do
         if [ "$command" != "${command#\#}" ]; then
             _ansi --yellow --nl "${command#\#}"
         else
-            printf '%s%s\n' "$(_ansi --green --format '  %-25s' "${command%% *}")" "${command#* }"
+            printf '%s%s\n' "$(_ansi --green --format '  %-25s' "${command%% *}")" "$(echo "$command" | cut -d' ' -s -f2-)"
         fi
     done
 ) fi
@@ -293,7 +293,7 @@ if [ -z "$(command -v '_import')" ]; then _import(){
     local old__import_prefix="$__import_prefix"
     __import=1
     __import_prefix="${__import_prefix}${2}"
-    local code="$(cat "$1" | sed -E "s/task_([a-zA-Z0-9_]+)/task_${__import_prefix}\1/g")"
+    local code="$(sed -E "s/task_([a-zA-Z0-9_]+)/task_${__import_prefix}\1/g" < "$1")"
     eval printf '%s' "$code"
     __import="$old__import"
     __import_prefix="$old__import_prefix"
