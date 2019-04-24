@@ -315,8 +315,8 @@ if [ -z "$(command -v '_run')" ]; then _run()(
     elif LC_ALL=C command -V "$name" 2>/dev/null | head -1 | grep -qe 'function'; then
         command="$name"
     else
-        ! tasks="$(_tasks)" task="$(printf '%s' "$tasks" | grep -e "^$(printf '%s' "$name" | sed -e 's/__/.*__/g')")"
-        if [ -n "$task" ] && [ "$(printf '%s\n' "$task" | wc -l)" = 1 ]; then command="$prefix$task"; fi
+        ! commands="$(_commands)" commands="$(printf '%s' "$commands" | grep -e "^$(printf '%s' "$name" | sed -e 's/__/.*__/g')")"
+        if [ -n "$commands" ] && [ "$(printf '%s\n' "$commands" | wc -l)" = 1 ]; then command="$prefix$commands"; fi
     fi
 
     if [ -z "$command" ]; then
