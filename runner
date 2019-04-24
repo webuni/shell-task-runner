@@ -300,6 +300,15 @@ if [ -z "$(command -v '_import')" ]; then _import(){
     __source="$__source $code"
 } fi
 
+if [ -z "$(command -v '_pass')" ]; then _pass()(
+    _ansi --green --nl " ✔ ${1}"
+) fi
+
+if [ -z "$(command -v '_fail')" ]; then _fail()(
+    _ansi --red --nl " ✘ ${1}"
+    return 1
+) fi
+
 if [ -z "$(command -v '_run')" ]; then _run()(
     if [ "$__import" ]; then return; fi
     prefix="${COMMAND_PREFIX:-task_}"

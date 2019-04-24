@@ -51,6 +51,12 @@ Helper functions
 
 - **_tasks**: List of functions with prefix `task_`.
 
+### Report helpers
+
+- **_fail**
+
+- **_pass**
+
 Customization
 -------------
 
