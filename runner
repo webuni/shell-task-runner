@@ -10,12 +10,14 @@ __source="${__source:-$(cat $0)}"
 __import="$__import"
 __import_prefix="$__import_prefix"
 
-if [ -z "$(command -v '_header')" ]; then _header()(
+__fn()(command -v "$1" | grep -q "$1")
+
+__fn _header || _header()(
     name="$(basename "$(cd "$(dirname "$0")"; pwd -P)")"
     printf "%s\\nUsage %s [command] [command_options]\\n\\n" "$(_ansi --underline "Application $(_ansi --bold --yellow "$name")")" "$0"
-) fi
+)
 
-if [ -z "$(command -v '_doc_comment')" ]; then _doc_comment()(
+__fn _doc_comment || _doc_comment()(
     func="$1"
     re_comment='(^|\r)[\t ]*((#|:)+ ?([^\r]*))'
     re_func='(^|\r)?[\t ]*'$func'[\t ]*\([\t ]*\)[^\{\(]*[\{\(][^\r]*\s*'
@@ -27,18 +29,18 @@ if [ -z "$(command -v '_doc_comment')" ]; then _doc_comment()(
             break
         fi
     done
-) fi
+)
 
-if [ -z "$(command -v '_doc_title')" ]; then _doc_title()(
+__fn _doc_title || _doc_title()(
     title="$(_doc_comment "$1" | sed -n '/./{p;q;}')"
     if [ -z "$title" ]; then
         title="$(printf '%s' "${2:-$__source}" | grep -E '^[\t ]*'"$1"'[\t ]*\([\t ]*\)[\t \{\(]*#' | sed -E 's/^[^#]+#+[\t ]*(.*)/\1/')"
     fi
 
     printf '%s' "$title"
-) fi
+)
 
-if [ -z "$(command -v '__doc_tags')" ]; then _doc_tags()(
+__fn _doc_tags || _doc_tags()(
     tags="$(_doc_comment "$1" | grep -E '^ *@' | sed 's/^ *//')"
     if [ -n "$3" ]; then only_delimited='-s'; fi
     if [ -n "$2" ]; then
@@ -50,16 +52,16 @@ if [ -z "$(command -v '__doc_tags')" ]; then _doc_tags()(
     fi
 
     printf '%s' "$tags"
-) fi
+)
 
-if [ -z "$(command -v '_commands')" ]; then _commands()(
+__fn _commands || _commands()(
     pattern="^\s*${1:-task_}([a-zA-Z0-9_]+)\s*\(\s*\).*"
     printf "%s" "${2:-$__source}" | grep -E "$pattern" | sort | while IFS= read -r line; do
         printf '%s\n' "$(printf '%s' "$line" | sed -E "s/$pattern/\\1/")"
     done
-) fi
+)
 
-if [ -z "$(command -v '_commands_list')" ]; then _commands_list()(
+__fn _commands_list || _commands_list()(
     list='' command_prefix="${1:-task_}" commands="$(_commands "$command_prefix" "$2")" prevprefix='' length="$(echo "$commands" | wc -L)"
     for command in $(echo "$commands" | grep -v '__') $(echo "$commands" | grep '__'); do
         prefix="$(echo "$command" | grep '__' | awk -F'__' '{printf $1}')"
@@ -77,30 +79,30 @@ if [ -z "$(command -v '_commands_list')" ]; then _commands_list()(
             printf '%s%s\n' "$(_ansi --green --format '  %-25s' "${command%% *}")" "$(echo "$command" | cut -d' ' -s -f2-)"
         fi
     done
-) fi
+)
 
-if [ -z "$(command -v '_shell_escape')" ]; then _shell_escape()(
+__fn _shell_escape || _shell_escape()(
     printf '%s' "$1" | sed -e 's/\(["\& '"'"']\)/\\\1/g'
-) fi
+)
 
-if [ -z "$(command -v '_quote')" ]; then _quote()(
+__fn _quote || _quote()(
     printf '%s' "$1" | sed "s/'/'\\\\''/g;1s/^/'/;\$s/\$/'/"
-) fi
+)
 
-if [ -z "$(command -v '_printf_escape')" ]; then _printf_escape()(
+__fn _printf_escape || _printf_escape()(
     printf '%s' "$1" | sed 's/%/%%/g'
-) fi
+)
 
-if [ -z "$(command -v '_ansifilter')" ]; then _ansifilter()(
+__fn _ansifilter || _ansifilter()(
     printf '%s' "$1" | sed -E 's/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]//g'
-) fi
+)
 
-if [ -z "$(command -v '_stty')" ]; then _stty()(
+__fn _stty || _stty()(
     sleep 0.1 # Fix tty delay for docker run -t ...
     stty "$@" 2>/dev/null
-) fi
+)
 
-if [ -z "$(command -v '_color')" ]; then _color()(
+__fn _color || _color()(
     case "$1" in
         black) echo 0;;
         red) echo 1;;
@@ -111,9 +113,9 @@ if [ -z "$(command -v '_color')" ]; then _color()(
         cyan) echo 6;;
         white) echo 7;;
     esac
-) fi
+)
 
-if [ -z "$(command -v '_ansi')" ]; then _ansi()(
+__fn _ansi || _ansi()(
     text='' start='' stop="" newline='' format="%s"
     while [ -n "$1" ]; do
         case "$1" in
@@ -140,13 +142,13 @@ if [ -z "$(command -v '_ansi')" ]; then _ansi()(
 
     eval set -- "$text"
     printf "${start}${format}${stop}${newline}" "$@"
-) fi
+)
 
-if [ -z "$(command -v '_indent')" ]; then _indent()(
+__fn _indent || _indent()(
     sed "s/^/${1:-  }/"
-) fi
+)
 
-if [ -z "$(command -v '_align')" ]; then _align()(
+__fn _align || _align()(
     for text in "$@"; do true; done
     rawtext="$(_ansifilter "$text")"
     width=$(( $(_stty size | cut -d' ' -f2) + ${#text} - ${#rawtext} ))
@@ -157,9 +159,9 @@ if [ -z "$(command -v '_align')" ]; then _align()(
         --center) printf "%${left_span}s%${right_span}s\\n" "$text";;
         *) printf "%s" "$text";;
     esac
-) fi
+)
 
-if [ -z "$(command -v '_box')" ]; then _box()(
+__fn _box || _box()(
     text=""; options=""; newline=""; padding=1; margin=0
     while [ -n "$1" ]; do
         case "$1" in
@@ -210,9 +212,9 @@ if [ -z "$(command -v '_box')" ]; then _box()(
     for _ in $(seq 1 "$padding"); do printf '%s\n' "$mspace$(_ansi $options --nl --format="%${width}s")"; done
     for _ in $(seq 1 "$margin"); do echo ""; done
     if [ -n "$newline" ]; then echo ""; fi
-) fi
+)
 
-if [ -z "$(command -v '_log')" ]; then _log()(
+__fn _log || _log()(
     color="gray"
     case $1 in
         --error) color="red"; shift;;
@@ -223,18 +225,18 @@ if [ -z "$(command -v '_log')" ]; then _log()(
     esac
 
     printf "[%s] %s\\n" "$(_ansi "--${color}" "$(date -Iseconds)")" "$@"
-) fi
+)
 
-if [ -z "$(command -v '_docker_run')" ]; then _docker_run()(
+__fn _docker_run || _docker_run()(
     if [ -t 0 ]; then tty="-t"; fi
     docker run --rm -i $tty -e DISPLAY="$DISPLAY" -v /tmp/.X11-unix:/tmp/.X11-unix -v "$(pwd):$(pwd)" -w "$(pwd)" "$@"
-) fi
+)
 
-if [ -z "$(command -v '_docker_compose')" ]; then _docker_compose()(
+__fn _docker_compose || _docker_compose()(
     docker-compose "$@"
-) fi
+)
 
-if [ -z "$(command -v '_docker_compose_run')" ]; then _docker_compose_run()(
+__fn _docker_compose_run || _docker_compose_run()(
     service="" services="$(_docker_compose config --services)"
     for arg in "$@"; do
         if echo "$services" | grep -qwe "$arg"; then service="$arg"; break; fi
@@ -246,9 +248,9 @@ if [ -z "$(command -v '_docker_compose_run')" ]; then _docker_compose_run()(
     else
         _docker_compose run --rm $DTTY "$@"
     fi
-) fi
+)
 
-if [ -z "$(command -v '_dotenv')" ]; then _dotenv()(
+__fn _dotenv || _dotenv()(
     config=""
     target="${1:-.env}"
     source="${2:-.env.dist}"
@@ -283,10 +285,11 @@ if [ -z "$(command -v '_dotenv')" ]; then _dotenv()(
         config="$config$key=$value\\n"
         help=""
     done < "$source"
+    # shellcheck disable=SC2059
     printf "$(_printf_escape "$config")" > "$target"
-) fi
+)
 
-if [ -z "$(command -v '_import')" ]; then _import(){
+__fn _import || _import(){
     if [ ! -r "$1" ]; then return 1; fi
 
     local old__import="$__import";
@@ -298,18 +301,18 @@ if [ -z "$(command -v '_import')" ]; then _import(){
     __import="$old__import"
     __import_prefix="$old__import_prefix"
     __source="$__source $code"
-} fi
+}
 
-if [ -z "$(command -v '_pass')" ]; then _pass()(
+__fn _pass || _pass()(
     _ansi --green --nl " ✔ ${1}"
-) fi
+)
 
-if [ -z "$(command -v '_fail')" ]; then _fail()(
+__fn _fail || _fail()(
     _ansi --red --nl " ✘ ${1}"
     return 1
-) fi
+)
 
-if [ -z "$(command -v '_run')" ]; then _run()(
+__fn _run || _run()(
     if [ "$__import" ]; then return; fi
     prefix="${COMMAND_PREFIX:-task_}"
     _ansi --reset
@@ -338,6 +341,6 @@ if [ -z "$(command -v '_run')" ]; then _run()(
         set -- "_decorator" "$@"
     fi
     "$@"
-) fi
+)
 
-if [ ! "$(grep -E "^\\s*_run(\\s+|$)" "$0")" ]; then _run "$@"; fi
+grep -qE "(^|\\s+)_run(\\s+|$)" "$0" || _run "$@"
