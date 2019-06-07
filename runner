@@ -343,4 +343,4 @@ __fn _run || _run()(
     "$@"
 )
 
-grep -qE "(^|\\s+)_run(\\s+|$)" "$0" || _run "$@"
+trap '_run "$@"' EXIT
