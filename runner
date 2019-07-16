@@ -254,7 +254,7 @@ __fn _decorator_docker_compose_run || _decorator_docker_compose_run() (
     if [ -n "$(type -p docker-compose)" ]; then
         service="${service:-$(_doc_tags "$1" service)}"
         if [ "$(printf '%s' "$service" | cut -c1)" = '$' ]; then service="$(eval echo "$service")"; fi
-        _docker_compose_run "$service" "$0" "$@"
+        if [ -n "$service" ]; then _docker_compose_run "$service" "$0" "$@"; else "$@"; fi
     else
         "$@"
     fi
