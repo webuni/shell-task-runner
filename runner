@@ -260,6 +260,15 @@ __fn _decorator_docker_compose_run || _decorator_docker_compose_run() (
     fi
 )
 
+__fn _load_dotenv || _load_dotenv() {
+    DOTENV_SHELL_LOADER_SAVED_OPTS=$(set +o)
+    set -a
+    [ -f "${1:-.env}" ] && source "$(_path "${1:-.env}")"
+    set +a
+    eval "$DOTENV_SHELL_LOADER_SAVED_OPTS"
+    unset DOTENV_SHELL_LOADER_SAVED_OPTS
+}
+
 __fn _dotenv || _dotenv()(
     config=""
     target="${1:-.env}"
@@ -320,6 +329,10 @@ __fn _pass || _pass()(
 __fn _fail || _fail()(
     _ansi --red --nl " ✘ ${1}"
     return 1
+)
+
+__fn _path || _path() (
+  echo "$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
 )
 
 __fn _run || _run()(
