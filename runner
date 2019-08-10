@@ -15,17 +15,21 @@ __fn()(command -v "$1" | grep -q "$1")
 __fn _header || _header()(
     name="$(basename "$(cd "$(dirname "$0")"; pwd -P)")"
     printf "%s\\nUsage %s [command] [command_options]\\n\\n" "$(_ansi --underline "Application $(_ansi --bold --yellow "$name")")" "$0"
+
+__fn _print || _print()(
+    printf '%s' "$@"
+)
+
 )
 
 __fn _doc_comment || _doc_comment()(
-    func="$1"
-    re_comment='(^|\r)[\t ]*((#|:)+ ?([^\r]*))'
-    re_func='(^|\r)?[\t ]*'$func'[\t ]*\([\t ]*\)[^\{\(]*[\{\(][^\r]*\s*'
-    code="$(printf '%s' "${2:-$__source}" | tr -d '\r' | tr '\n' '\r')"
-    for pattern in "(${re_comment})+${re_func}" "${re_func}(${re_comment})+"; do
-        comment="$(printf "%s" "$code" | awk 'match($0, /'"$pattern"'/) {print substr($0, RSTART, RLENGTH)}' | sed -E 's/'"$re_func"'//g;s/'"$re_comment"'/\4\r/g' | tr '\r' '\n')"
+    re_text='[^\r]*' re_comment='(^|\r)[\t ]*(#|:)+ ?' re_func="(^|\r)[^#\r\"']*$1[\t ]*\([\t ]*\)[^\{\(]*[\{\(][^\r]*\s*"
+    code="$(_print "${2:-$__source}" | tr -d '\r' | tr '\n' '\r')"
+    for pattern in "($re_comment$re_text)+$re_func" "$re_func($re_comment$re_text)+"; do
+        comment="$(_print "$code" | awk 'match($0, /'"$pattern"'/) { t = substr($0, RSTART, RLENGTH);
+            gsub(/'"$re_func"'/, "", t); gsub(/'"$re_comment"'/, "\r", t); print t}' | tr '\r' '\n')"
         if [ -n "$comment" ]; then
-            printf '%s' "$comment"
+            _print "$comment"
             break
         fi
     done
@@ -34,49 +38,47 @@ __fn _doc_comment || _doc_comment()(
 __fn _doc_title || _doc_title()(
     title="$(_doc_comment "$1" | sed -n '/./{p;q;}')"
     if [ -z "$title" ]; then
-        title="$(printf '%s' "${2:-$__source}" | grep -E '^[\t ]*'"$1"'[\t ]*\([\t ]*\)[\t \{\(]*#' | sed -E 's/^[^#]+#+[\t ]*(.*)/\1/')"
+        title="$(_print "${2:-$__source}" | grep -E '^[\t ]*'"$1"'[\t ]*\([\t ]*\)[\t \{\(]*#' | awk '{gsub(/^[^#]+#+[\t ]*/, ""); print}')"
     fi
 
-    printf '%s' "$title"
+    _print "$title"
 )
 
 __fn _doc_tags || _doc_tags()(
     tags="$(_doc_comment "$1" | grep -E '^ *@' | sed 's/^ *//')"
     if [ -n "$3" ]; then only_delimited='-s'; fi
     if [ -n "$2" ]; then
-        tags="$(printf '%s' "$tags" | grep -E "^@?$2" | cut -d' ' $only_delimited -f2-)"
+        tags="$(_print "$tags" | grep -E "^@?$2" | cut -d' ' $only_delimited -f2-)"
     fi
 
     if [ -n "$3" ] && [ -z "$tags" ]; then
         tags="$3"
     fi
 
-    printf '%s' "$tags"
+    _print "$tags"
 )
 
-__fn _commands || _commands()(
-    pattern="^\s*${1:-task_}([a-zA-Z0-9_]+)\s*\(\s*\).*"
-    printf "%s" "${2:-$__source}" | grep -E "$pattern" | sort | while IFS= read -r line; do
-        printf '%s\n' "$(printf '%s' "$line" | sed -E "s/$pattern/\\1/")"
-    done
+__fn _commands || _commands() (
+    prefix="${1:-task_}" suffix='\s*\(\s*\)' pattern="${prefix}[a-z0-9_]+"
+    _print "${2:-$__source}" | grep -Eio "^[^#\r\"']*$pattern$suffix" | grep -Eio "$pattern" | sort | awk '{gsub(/'"$prefix"'/, ""); print}'
 )
 
 __fn _commands_list || _commands_list()(
-    list='' command_prefix="${1:-task_}" commands="$(_commands "$command_prefix" "$2")" prevprefix='' length="$(echo "$commands" | wc -L)"
-    for command in $(echo "$commands" | grep -v '__') $(echo "$commands" | grep '__'); do
-        prefix="$(echo "$command" | grep '__' | awk -F'__' '{printf $1}')"
-        if [ -n "$prefix" ] && [ "$prefix" != "$prevprefix" ]; then
-            prevprefix="$prefix"; list="$(printf '%s\n# %s' "$list" "$prefix")"
-        fi
-        list="$(printf '%s\n%s %s' "$list" "$(echo "$command" | sed 's/__/:/g')" "$(_doc_title "$command_prefix$command")")"
-    done
+    list='' command_prefix="${1:-task_}" commands="$(_commands "$command_prefix" "$2")" prevprefix=''
+    length="$(_print "$commands" | awk '{gsub("__", ":"); print length}' | sort -nr | head -1)"
+    length=$(( length + 2 ))
 
+    prefixes="$(_print "$commands" | grep -Eio '^[a-z0-9]+__' | uniq | awk '{print substr($0, 0, length - 2)}' | xargs | sed 's/ /|/g')"
+    commands="$(_print "$commands" | grep -Ev "^($prefixes)" | cat)$(_print "$commands" | grep -E "^($prefixes)" | cat)"
+    commands="$(_print "$commands" | awk 'BEGIN{pp=""}{p="";;c=$0;gsub(/__/, ":", c); if(match($0, /^('"$prefixes"')($|_)/)){
+        p=substr($0, RSTART, RLENGTH);sub(/_/, "", p);if(p!=pp){print p}};pp=p}{printf("%s|%s\n",c,$0)}')"
     _ansi --yellow --nl "Available commands:"
-    echo "$list" | sed '1d' | while read -r command; do
-        if [ "$command" != "${command#\#}" ]; then
-            _ansi --yellow --nl "${command#\#}"
+    echo "$commands" | while IFS='' read command; do
+        name="${command#*|}"
+        if [ "$command" = "$name" ]; then
+          _ansi --yellow --nl " ${command#\#}"
         else
-            printf '%s%s\n' "$(_ansi --green --format '  %-25s' "${command%% *}")" "$(echo "$command" | cut -d' ' -s -f2-)"
+          printf ' %s%s\n' "$(_ansi --green --format " %-${length}s" "${command%|*}")" "$(_doc_title "$command_prefix${name}")"
         fi
     done
 )
