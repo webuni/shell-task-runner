@@ -68,7 +68,7 @@ __fn _commands_list || _commands_list()(
     length=$(( length + 2 ))
 
     prefixes="$(_print "$commands" | grep -Eio '^[a-z0-9]+__' | uniq | awk '{print substr($0, 0, length - 2)}' | xargs | sed 's/ /|/g')"
-    commands="$(_print "$commands" | grep -Ev "^($prefixes)" | cat)$(_print "$commands" | grep -E "^($prefixes)" | cat)"
+    commands="$( printf '%s\n%s' "$(_print "$commands" | grep -Ev "^($prefixes)")" "$(_print "$commands" | grep -E "^($prefixes)")" | grep -v "^$")"
     commands="$(_print "$commands" | awk 'BEGIN{pp=""}{p="";;c=$0;gsub(/__/, ":", c); if(match($0, /^('"$prefixes"')($|_)/)){
         p=substr($0, RSTART, RLENGTH);sub(/_/, "", p);if(p!=pp){print p}};pp=p}{printf("%s|%s\n",c,$0)}')"
     _ansi --yellow --nl "Available commands:"
