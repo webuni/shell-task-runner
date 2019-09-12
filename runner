@@ -83,19 +83,19 @@ __fn _commands_list || _commands_list()(
 )
 
 __fn _shell_escape || _shell_escape()(
-    printf '%s' "$1" | sed -e 's/\(["\& '"'"']\)/\\\1/g'
+    _print "$1" | sed -e 's/\(["\& '"'"']\)/\\\1/g'
 )
 
 __fn _quote || _quote()(
-    printf '%s' "$1" | sed "s/'/'\\\\''/g;1s/^/'/;\$s/\$/'/"
+    _print "$1" | sed "s/'/'\\\\''/g;1s/^/'/;\$s/\$/'/"
 )
 
 __fn _printf_escape || _printf_escape()(
-    printf '%s' "$1" | sed 's/%/%%/g'
+    _print "$1" | sed 's/%/%%/g'
 )
 
 __fn _ansifilter || _ansifilter()(
-    printf '%s' "$1" | sed -E 's/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]//g'
+    _print "$1" | sed -E 's/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]//g'
 )
 
 __fn _stty || _stty()(
@@ -121,21 +121,21 @@ __fn _ansi || _ansi()(
     while [ -n "$1" ]; do
         case "$1" in
             --nl|--new-line) newline="\\n";;
-            --bold) start="$start\\033[1m" stop="\\033[22m$stop";;
-            --italic) start="$start\\033[3m" stop="\\033[23m$stop";;
+            --bold) start="$start\e[1m" stop="\e[22m$stop";;
+            --italic) start="$start\e[3m" stop="\e[23m$stop";;
             --format=*) format="${1#*=}";;
             -f|--format) shift; format="$1";;
-            --underline) start="$start\\033[4m" stop="\\033[24m$stop";;
-            --inverse) start="$start\\033[7m";;
-            --reset) start="$start\\033[0m";;
-            --bg-bright-*) start="$start\\033[10$(_color "${1##*-}")m" stop="\\033[49m$stop";;
-            --bg-*-intense) start="$start\\033[10$(_color "$(echo "$1" | cut -d- -f4)")m" stop="\\033[49m$stop";;
-            --bg-*) start="$start\\033[4$(_color "${1##*-}")m" stop="\\033[49m$stop";;
-            --bright-gray) start="$start\\033[37m" stop="\\033[39m$stop";;
-            --bright-*) start="$start\\033[9$(_color "${1##*-}")m" stop="\\033[39m$stop";;
-            --gray) start="$start\\033[90m" stop="\\033[39m$stop";;
-            --*-intense) start="$start\\033[9$(_color "$(echo "$1" | cut -d- -f3)")m" stop="\\033[39m$stop";;
-            --black|--red|--green|--yellow|--blue|--magenta|--purple|--cyan|--white) start="$start\\033[3$(_color "${1##*-}")m" stop="\\033[39m$stop";;
+            --underline) start="$start\e[4m" stop="\e[24m$stop";;
+            --inverse) start="$start\e[7m";;
+            --reset) start="$start\e[0m";;
+            --bg-bright-*) start="$start\e[10$(_color "${1##*-}")m" stop="\e[49m$stop";;
+            --bg-*-intense) start="$start\e[10$(_color "$(echo "$1" | cut -d- -f4)")m" stop="\e[49m$stop";;
+            --bg-*) start="$start\e[4$(_color "${1##*-}")m" stop="\e[49m$stop";;
+            --bright-gray) start="$start\e[37m" stop="\e[39m$stop";;
+            --bright-*) start="$start\e[9$(_color "${1##*-}")m" stop="\e[39m$stop";;
+            --gray) start="$start\e[90m" stop="\e[39m$stop";;
+            --*-intense) start="$start\e[9$(_color "$(echo "$1" | cut -d- -f3)")m" stop="\e[39m$stop";;
+            --black|--red|--green|--yellow|--blue|--magenta|--purple|--cyan|--white) start="$start\e[3$(_color "${1##*-}")m" stop="\e[39m$stop";;
             *) text="$text $(_quote "$1")";;
         esac
         shift
@@ -185,7 +185,7 @@ __fn _box || _box()(
     for _ in $(seq 1 "$margin"); do echo ""; done
     for _ in $(seq 1 "$padding"); do echo "$mspace$(_ansi $options --nl --format="%${width}s")"; done
 
-    esc="$(printf '\033')"
+    esc="$(printf '\e')"
     printf "$(_printf_escape "$text\\n ")" | while IFS= read -r part; do
         length=0; line=''; state=0
         printf '%s\n' "$part" | sed 's/\(.\)/\1\n/g' | {
@@ -288,9 +288,9 @@ __fn _dotenv || _dotenv()(
             continue
         fi
 
-        key="$(printf "%s" "$line" | cut -d= -f1)"
-        value="$(printf "%s" "$line" | cut -d= -f2-)"
-        default="$(eval printf "%s" "$value" 2>/dev/null)" || default="$value"
+        key="$(_print "$line" | cut -d= -f1)"
+        value="$(_print "$line" | cut -d= -f2-)"
+        default="$(eval _print "$value" 2>/dev/null)" || default="$value"
         value="$default"
         if [ "$1" = '-f' ] || [ "$1" = '--force' ] || ! grep "^${key}=" "$target" > /dev/null; then
             [ -n "$help" ] && _ansi --white --nl "  $help"
@@ -361,8 +361,8 @@ __fn _run || _run()(
     fi
 
     shift; set -- "$command" "$@"
-    if [ -n "$(command -v "_decorator")" ] && [ -z "$(_doc_tags "$command" | grep -E '^@no[_-]?decorat(e|or)')" ]; then
-        set -- "_decorator" "$@"
+    if __fn _decorator && _doc_tags "$command" | grep -qvE '^@no[_-]?decorat(e|or)'; then
+        set -- _decorator "$@"
     fi
     "$@"
 )
