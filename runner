@@ -15,11 +15,10 @@ __fn()(command -v "$1" | grep -q "$1")
 __fn _header || _header()(
     name="$(basename "$(cd "$(dirname "$0")"; pwd -P)")"
     printf "%s\\nUsage %s [command] [command_options]\\n\\n" "$(_ansi --underline "Application $(_ansi --bold --yellow "$name")")" "$0"
+)
 
 __fn _print || _print()(
     printf '%s' "$@"
-)
-
 )
 
 __fn _doc_comment || _doc_comment()(
