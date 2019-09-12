@@ -332,6 +332,22 @@ __fn _fail || _fail()(
     return 1
 )
 
+__fn _diff || _diff()(
+    expected="$1"; actual="${2:--}"
+    if [ - = "$expected" ]; then expected="$(cat)"; fi
+    if [ - = "$actual" ]; then actual="$(cat)"; fi
+
+    if [ "$actual" != "$expected" ]; then
+        expected_file="$(mktemp)" actual_file="$(mktemp)"
+        printf "%s\n" "$expected" > "$expected_file"
+        printf "%s\n" "$actual" > "$actual_file"
+        diff -du "$expected_file" "$actual_file" | sed '1,3d'
+        rm "$expected_file" "$actual_file"
+
+        return 1
+    fi
+)
+
 __fn _path || _path() (
   echo "$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
 )
