@@ -1,0 +1,18 @@
+name: CI
+on: [push]
+
+jobs:
+  tests:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macOS-latest]
+    name: Test on ${{ matrix.os }}
+    steps:
+      - name: Checks out a copy of your repository
+        uses: actions/checkout@v1
+      - name: Run tests
+        run: ./tests/ansi.sh
+        id: tests
+      - name: Echo the greeting's time
+        run: echo 'The time was ${{ steps.tests.outputs.time }}.'
