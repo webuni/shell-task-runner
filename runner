@@ -21,6 +21,10 @@ __fn _print || _print()(
     printf '%s' "$@"
 )
 
+__fn _println || _println()(
+    printf '%s\n' "$@"
+)
+
 __fn _doc_comment || _doc_comment()(
     re_text='[^\r]*' re_comment='(^|\r)[\t ]*(#|:)+ ?' re_func="(^|\r)[^#\r\"']*$1[\t ]*\([\t ]*\)[^\{\(]*[\{\(][^\r]*\s*"
     code="$(_print "${2:-$__source}" | tr -d '\r' | tr '\n' '\r')"
@@ -95,7 +99,7 @@ __fn _printf_escape || _printf_escape()(
 )
 
 __fn _ansifilter || _ansifilter()(
-    _print "$1" | sed -E 's/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]//g'
+    _print "$1" | awk '{gsub(/\x1B\[[0-9;]+[mGKFH]/, "");}1'
 )
 
 __fn _stty || _stty()(
@@ -188,7 +192,7 @@ __fn _box || _box()(
     esc="$(printf '\033')"
     printf "$(_printf_escape "$text\\n ")" | while IFS= read -r part; do
         length=0; line=''; state=0
-        printf '%s\n' "$part" | sed 's/\(.\)/\1\n/g' | {
+        _println "$part" | sed 's/\(.\)/\1\n/g' | {
             LANG=C; LC_ALL=C
             while IFS= read -r char; do
                 line="$line$char"
@@ -199,18 +203,18 @@ __fn _box || _box()(
                 fi
                 if [ "$state" -eq 1 ] && [ "m" = "$char" ]; then state=0; fi
                 if [ "$length" -eq "$textwidth" ]; then
-                    printf '%s\n' "$mspace$(_ansi $options --format="$pspace%s%$(( textwidth - length ))s$pspace" "$line")"
+                    _println "$mspace$(_ansi $options --format="$pspace%s%$(( textwidth - length ))s$pspace" "$line")"
                     length=0; line='';
                 fi
             done
             if [ "$length" -gt 0 ]; then
-                printf '%s\n' "$mspace$(_ansi $options --format="$pspace%s%$(( textwidth - length + 1 ))s$pspace" "$line")"
+                _println "$mspace$(_ansi $options --format="$pspace%s%$(( textwidth - length + 1 ))s$pspace" "$line")"
             fi
             length=0; line=''
         }
     done
 
-    for _ in $(seq 1 "$padding"); do printf '%s\n' "$mspace$(_ansi $options --nl --format="%${width}s")"; done
+    for _ in $(seq 1 "$padding"); do _println "$mspace$(_ansi $options --nl --format="%${width}s")"; done
     for _ in $(seq 1 "$margin"); do echo ""; done
     if [ -n "$newline" ]; then echo ""; fi
 )
@@ -254,7 +258,7 @@ __fn _docker_compose_run || _docker_compose_run()(
 __fn _decorator_docker_compose_run || _decorator_docker_compose_run() (
     if [ -n "$(type -p docker-compose)" ]; then
         service="${service:-$(_doc_tags "$1" service)}"
-        if [ "$(printf '%s' "$service" | cut -c1)" = '$' ]; then service="$(eval echo "$service")"; fi
+        if [ "$(_print "$service" | cut -c1)" = '$' ]; then service="$(eval _print "$service")"; fi
         if [ -n "$service" ]; then _docker_compose_run "$service" "$0" "$@"; else "$@"; fi
     else
         "$@"
@@ -277,8 +281,8 @@ __fn _dotenv || _dotenv()(
 
     touch "$source" "$target"
     while read -r line; do
-        if [ "$(printf "%s" "$line" | head -c1)" = '#' ]; then
-            help=$(printf "%s" "$line" | cut -c2- | xargs)
+        if [ "$(_print "$line" | head -c1)" = '#' ]; then
+            help=$(_print "$line" | cut -c2- | xargs)
             config="$config$line\\n"
             continue
         fi
@@ -310,17 +314,16 @@ __fn _dotenv || _dotenv()(
 )
 
 __fn _import || _import(){
-    if [ ! -r "$1" ]; then return 1; fi
-
+    [ ! -r "$1" ] && return 1
     local old__import="$__import";
     local old__import_prefix="$__import_prefix"
     __import=1
     __import_prefix="${__import_prefix}${2}"
     local code="$(sed -E "s/task_([a-zA-Z0-9_]+)/task_${__import_prefix}\1/g" < "$1")"
-    eval printf '%s' "$code"
+    __source="$__source $code"
+    eval _print "$code"
     __import="$old__import"
     __import_prefix="$old__import_prefix"
-    __source="$__source $code"
 }
 
 __fn _pass || _pass()(
@@ -333,14 +336,16 @@ __fn _fail || _fail()(
 )
 
 __fn _diff || _diff()(
-    expected="$1"; actual="${2:--}"
+    expected="$1"; actual="$2"
+    [ "$#" -lt 2 ] && [ -t 1 ] && actual=-
+
     if [ - = "$expected" ]; then expected="$(cat)"; fi
     if [ - = "$actual" ]; then actual="$(cat)"; fi
 
     if [ "$actual" != "$expected" ]; then
         expected_file="$(mktemp)" actual_file="$(mktemp)"
-        printf "%s\n" "$expected" > "$expected_file"
-        printf "%s\n" "$actual" > "$actual_file"
+        _println "$expected" > "$expected_file"
+        _println "$actual" > "$actual_file"
         diff -du "$expected_file" "$actual_file" | sed '1,3d'
         rm "$expected_file" "$actual_file"
 
@@ -356,19 +361,19 @@ __fn _run || _run()(
     if [ "$__import" ]; then return; fi
     prefix="${COMMAND_PREFIX:-task_}"
     _ansi --reset
-    name="$(printf '%s' "$1" | sed 's/:/__/g')"
+    name="$(_print "$1" | sed 's/:/__/g')"
     if [ -z "$name" ] || [ "$name" = '-h' ] || [ "$name" = '--help' ]; then
         _header
         printf "%s\\n  %-25s%s\\n\\n" "$(_ansi --cyan "Options:")" "$(_ansi --green "-h, --help")" "Print this message and exit"
         _commands_list "$prefix"
         return
-    elif [ -n "$(command -v "$prefix$name")" ]; then
+    elif __fn "$prefix$name"; then
         command="$prefix$name"
     elif LC_ALL=C command -V "$name" 2>/dev/null | head -1 | grep -qe 'function'; then
         command="$name"
     else
-        ! commands="$(_commands)" commands="$(printf '%s' "$commands" | grep -e "^$(printf '%s' "$name" | sed -e 's/__/.*__/g')")"
-        if [ -n "$commands" ] && [ "$(printf '%s\n' "$commands" | wc -l)" = 1 ]; then command="$prefix$commands"; fi
+        ! commands="$(_commands)" commands="$(_print "$commands" | grep -e "^$(_print "$name" | sed -e 's/__/.*__/g')")"
+        if [ -n "$commands" ] && [ "$(_println "$commands" | wc -l)" = 1 ]; then command="$prefix$commands"; fi
     fi
 
     if [ -z "$command" ]; then
@@ -377,7 +382,7 @@ __fn _run || _run()(
     fi
 
     shift; set -- "$command" "$@"
-    if __fn _decorator && _doc_tags "$command" | grep -qvE '^@no[_-]?decorat(e|or)'; then
+    if __fn _decorator && _println "$(_doc_tags "$command")" | grep -qvE '^@no[_-]?decorat(e|or)'; then
         set -- _decorator "$@"
     fi
     "$@"
