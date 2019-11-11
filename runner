@@ -255,13 +255,34 @@ __fn _docker_compose_run || _docker_compose_run()(
     fi
 )
 
+__fn _decorator_docker_run || _decorator_docker_run() (
+    if [ -n "$(type -p docker)" ]; then
+        image="${image:-$(_doc_tags "$1" image)}"
+        if [ "$(_print "$image" | cut -c1)" = '$' ]; then image="$(eval _print "$image")"; fi
+        if [ -n "$image" ]; then
+            command="$1" shift
+            _docker_run "$image" "$0" "$command" "$@";
+        else
+            "$@"
+        fi
+    else
+        "$@"
+    fi
+)
+
 __fn _decorator_docker_compose_run || _decorator_docker_compose_run() (
     if [ -n "$(type -p docker-compose)" ]; then
         service="${service:-$(_doc_tags "$1" service)}"
         if [ "$(_print "$service" | cut -c1)" = '$' ]; then service="$(eval _print "$service")"; fi
-        if [ -n "$service" ]; then _docker_compose_run "$service" "$0" "$@"; else "$@"; fi
+        if [ -n "$service" ]; then
+            command="$1" shift
+            # TODO Fix prefix from import (remove prefix)
+            _docker_compose_run "$service" "$0" "$command" "$@";
+        else
+            _decorator_docker_run "$@"
+        fi
     else
-        "$@"
+        _decorator_docker_run "$@"
     fi
 )
 
