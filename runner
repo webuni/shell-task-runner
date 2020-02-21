@@ -234,7 +234,8 @@ __fn _log || _log()(
 
 __fn _docker_run || _docker_run()(
     if [ -t 0 ]; then tty="-t"; fi
-    docker run --rm -i $tty -e DISPLAY="$DISPLAY" -v /tmp/.X11-unix:/tmp/.X11-unix -v "$(pwd):$(pwd)" -w "$(pwd)" "$@"
+    if [ -d '/tmp/.X11-unix' ]; then x11="-v /tmp/.X11-unix:/tmp/.X11-unix"; fi
+    docker run --rm -i $tty -e DISPLAY="$DISPLAY" $x11 -v "$(pwd):$(pwd)" -w "$(pwd)" "$@"
 )
 
 __fn _docker_compose || _docker_compose()(
