@@ -249,7 +249,7 @@ __fn _docker_compose_run || _docker_compose_run()(
     done
 
     if [ -t 1 ]; then DTTY=""; else DTTY="-T"; fi
-    if _docker_compose ps | grep -qe "_${service}_1.* Up "; then
+    if _docker_compose ps --filter "status=running" --services | grep -qe "$service"; then
         _docker_compose exec $DTTY --user "$(id -u):$(id -g)" "$@"
     else
         _docker_compose run --rm $DTTY "$@"
