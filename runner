@@ -10,7 +10,7 @@ __source="${__source:-$(cat $0)}"
 __import="$__import"
 __import_prefix="$__import_prefix"
 
-__fn()(command -v "$1" | grep -q "$1")
+__fn()(command -v "$1" | grep -q "$1" && exit 0 || exit 1)
 
 __fn _header || _header()(
     name="$(basename "$(cd "$(dirname "$0")"; pwd -P)")"
@@ -257,7 +257,7 @@ __fn _docker_compose_run || _docker_compose_run()(
 )
 
 __fn _decorator_docker_run || _decorator_docker_run() (
-    if [ -n "$(type -p docker)" ]; then
+    if __fn docker; then
         image="${image:-$(_doc_tags "$1" image)}"
         if [ "$(_print "$image" | cut -c1)" = '$' ]; then image="$(eval _print "$image")"; fi
         if [ -n "$image" ]; then
@@ -272,7 +272,7 @@ __fn _decorator_docker_run || _decorator_docker_run() (
 )
 
 __fn _decorator_docker_compose_run || _decorator_docker_compose_run() (
-    if [ -n "$(type -p docker-compose)" ]; then
+    if __fn docker-compose; then
         service="${service:-$(_doc_tags "$1" service)}"
         if [ "$(_print "$service" | cut -c1)" = '$' ]; then service="$(eval _print "$service")"; fi
         if [ -n "$service" ]; then
