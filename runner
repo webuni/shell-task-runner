@@ -298,8 +298,8 @@ __fn _load_dotenv || _load_dotenv() {
 
 __fn _dotenv || _dotenv()(
     config=""
-    target="${1:-.env}"
-    source="${2:-.env.dist}"
+    target="$(_path "${1:-.env}")"
+    source="$(_path "${2:-.env.dist}")"
 
     touch "$source" "$target"
     while read -r line; do
