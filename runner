@@ -354,7 +354,7 @@ __fn _pass || _pass()(
 
 __fn _fail || _fail()(
     _ansi --red --nl " ✘ ${1}"
-    return 1
+    return "${2:-1}"
 )
 
 __fn _diff || _diff()(
