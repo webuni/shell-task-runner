@@ -398,6 +398,10 @@ __fn _run || _run()(
         if [ -n "$commands" ] && [ "$(_println "$commands" | wc -l)" = 1 ]; then command="$prefix$commands"; fi
     fi
 
+    if [ -z "$command" ] && __fn _command; then
+      command="$(_command "$1" "$name" "$prefix")"
+    fi
+
     if [ -z "$command" ]; then
         _header
         _box --bg-red --white --nl "Command $(_ansi --bold "$1") doesn't exist." >&2 && _commands_list "$prefix" >&1 && exit 1
