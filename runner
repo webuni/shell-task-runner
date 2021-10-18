@@ -9,8 +9,9 @@ set -e
 __source="${__source:-$(cat $0)}"
 __import="$__import"
 __import_prefix="$__import_prefix"
+__docker_compose_command="$(docker-compose >/dev/null 2>&1 && echo "docker-compose" || (docker compose >/dev/null 2>&1 && echo "docker compose" || echo ""))"
 
-__fn()(command -v "$1" | grep -q "$1" && exit 0 || exit 1)
+__fn()( command -v "$1" | grep -q "$1" && exit 0 || exit 1 )
 
 __fn _header || _header()(
     name="$(basename "$(cd "$(dirname "$0")"; pwd -P)")"
@@ -239,10 +240,12 @@ __fn _docker_run || _docker_run()(
 )
 
 __fn _docker_compose || _docker_compose()(
-    docker-compose "$@"
+    if [ -z "$__docker_compose_command" ]; then _fail "Install docker-compose or docker" >&2; fi
+    $__docker_compose_command "$@"
 )
 
 __fn _docker_compose_run || _docker_compose_run()(
+    if [ -z "$__docker_compose_command" ]; then _fail "Install docker-compose or docker" >&2; fi
     service="" services="$(_docker_compose config --services)"
     for arg in "$@"; do
         if echo "$services" | grep -qwe "$arg"; then service="$arg"; break; fi
@@ -272,7 +275,7 @@ __fn _decorator_docker_run || _decorator_docker_run() (
 )
 
 __fn _decorator_docker_compose_run || _decorator_docker_compose_run() (
-    if __fn docker-compose; then
+    if [ -n "$__docker_compose_command" ]; then
         service="${service:-$(_doc_tags "$1" service)}"
         if [ "$(_print "$service" | cut -c1)" = '$' ]; then service="$(eval _print "$service")"; fi
         if [ -n "$service" ]; then
