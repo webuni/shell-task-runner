@@ -414,7 +414,7 @@ __fn _run || _run()(
     if __fn _decorator && _println "$(_doc_tags "$command")" | grep -qvE '^@no[_-]?decorat(e|or)'; then
         set -- _decorator "$@"
     fi
-    "$@"
+    "$@" && exit "$?" || exit "$?"
 )
 
-trap '_run "$@"' EXIT
+trap '_run "$@" && exit "$?" || exit "$?"' EXIT
