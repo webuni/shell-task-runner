@@ -9,7 +9,7 @@ set -e
 __source="${__source:-$(cat $0)}"
 __import="$__import"
 __import_prefix="$__import_prefix"
-__docker_compose_command="$(docker-compose >/dev/null 2>&1 && echo "docker-compose" || (docker compose >/dev/null 2>&1 && echo "docker compose" || echo ""))"
+__docker_compose_command="$(docker compose >/dev/null 2>&1 && echo "docker compose" || (docker-compose >/dev/null 2>&1 && echo "docker-compose" || echo ""))"
 
 __fn()( command -v "$1" | grep -q "$1" && exit 0 || exit 1 )
 
@@ -293,7 +293,7 @@ __fn _decorator_docker_compose_run || _decorator_docker_compose_run() (
 __fn _load_dotenv || _load_dotenv() {
     DOTENV_SHELL_LOADER_SAVED_OPTS=$(set +o)
     set -a
-    [ -f "${1:-.env}" ] && source "$(_path "${1:-.env}")"
+    [ -f "${1:-.env}" ] && . "$(_path "${1:-.env}")"
     set +a
     eval "$DOTENV_SHELL_LOADER_SAVED_OPTS"
     unset DOTENV_SHELL_LOADER_SAVED_OPTS
