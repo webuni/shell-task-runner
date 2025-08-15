@@ -10,9 +10,17 @@ jobs:
     name: Test on ${{ matrix.os }}
     steps:
       - name: Checks out a copy of your repository
-        uses: actions/checkout@v1
+        uses: actions/checkout@v2
       - name: Run tests
         run: ./tests/ansi.sh
         id: tests
       - name: Echo the greeting's time
         run: echo 'The time was ${{ steps.tests.outputs.time }}.'
+  shellcheck:
+    name: Shellcheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checks out a copy of your repository
+        uses: actions/checkout@v2
+      - name: Run ShellCheck
+        uses: ludeeus/action-shellcheck@master
